@@ -44,18 +44,18 @@ class RSI:
 
     def generate_features(self, ticker_data):
         # add Relative Strength Index
-        logging.info('generating RSI for each price...')
+        logger.info('generating RSI for each price...')
         ticker_groups = ticker_data.groupby('ticker')
         ticker_data['RSI'] = ticker_groups['adj_close'].transform(
             lambda x: self.relative_strength_index(x, self.interval)
         )
 
         # group by era (date)
-        logging.info('grouping by dates...')
+        logger.info('grouping by dates...')
         date_groups = ticker_data.groupby('date')
 
         # create quintile labels within each era, useful for learning relative ranking
-        logging.info('generating RSI quintiles...')
+        logger.info('generating RSI quintiles...')
         ticker_data['RSI_quintile'] = date_groups['RSI'].transform(
             lambda group: pd.qcut(group, 5, labels=False, duplicates='drop')
         )
@@ -64,11 +64,11 @@ class RSI:
         feat_quintile_lag, feat_rsi_diff, feat_rsi_diff_abs = self.get_rsi_feature_names(self.num_days)
 
         # create lagged features grouped by ticker
-        logging.info('grouping by ticker...')
+        logger.info('grouping by ticker...')
         ticker_groups = ticker_data.groupby('ticker')
 
         # lag 0 is that day's value, lag 1 is yesterday's value, etc
-        logging.info('generating lagged RSI quintiles...')
+        logger.info('generating lagged RSI quintiles...')
         for day in range(self.num_days + 1):
             ticker_data[feat_quintile_lag[day]] = ticker_groups['RSI_quintile'].transform(
                 lambda group: group.shift(day)
@@ -76,7 +76,7 @@ class RSI:
 
         # create difference of the lagged features and
         # absolute difference of the lagged features (change in RSI quintile by day)
-        logging.info('generating lagged RSI diffs...')
+        logger.info('generating lagged RSI diffs...')
         for day in range(self.num_days):
             ticker_data[feat_rsi_diff[day]] = (
                 ticker_data[feat_quintile_lag[day]] - ticker_data[feat_quintile_lag[day + 1]]

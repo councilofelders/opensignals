@@ -143,7 +143,7 @@ def get_data(
     live_data = pd.concat([live_data, thursday_data])
     live_data = live_data.set_index('date')
 
-    return train_data, test_data, live_data
+    return train_data, test_data, live_data, feature_names
 
 
 def download_data(db_dir, recreate = False):
