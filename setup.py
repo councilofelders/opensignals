@@ -14,15 +14,19 @@ kognia_path = Path(__file__).resolve().parent.parent
 
 setup(
     long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
+    url='https://github.com/jrdi/ysignals',
+    project_urls={
+        'Bug Tracker': 'https://github.com/jrdi/ysignals/issues',
+    },
     packages=find_packages('src'),
     package_dir={'': 'src'},
     py_modules=[path.stem for path in Path('src').glob('*.py')],
+    python_requires='>=3.6',
     zip_safe=True,
     include_package_data=True,
     install_requires=[
         'docopt',
-        'fsspec',
-        's3fs',
         'yfinance @ git+http://github.com/jrdi/yfinance.git@master#egg=yfinance',
     ],
     extras_require=dict(
@@ -44,4 +48,18 @@ setup(
         ]
     },
     **metadata,
+    classifiers=[
+        'License :: OSI Approved :: Apache Software License',
+        'Development Status :: 3 - Alpha',
+        # 'Development Status :: 4 - Beta',
+        # 'Development Status :: 5 - Production/Stable',
+        'Operating System :: OS Independent',
+        'Intended Audience :: Developers',
+        'Topic :: Office/Business :: Financial',
+        'Topic :: Office/Business :: Financial :: Investment',
+        'Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator',
+        'Topic :: Software Development :: Libraries',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+        'Programming Language :: Python :: 3',
+    ],
 )

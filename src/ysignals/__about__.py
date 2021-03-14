@@ -7,4 +7,4 @@ __description__ = 'Yahoo Signals'
 __author__ = 'Jordi Villar'
 __author_email__ = 'jrdi.villar@gmail.com'
 
-__license__ = 'None'
+__license__ = 'Apache License'
