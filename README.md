@@ -1,5 +1,11 @@
 # ysignals
 
+## Install
+
+```
+pip install -U git+http://github.com/jrdi/ysignals.git@master#egg=ysignals
+```
+
 ## Usage
 
 ```python
