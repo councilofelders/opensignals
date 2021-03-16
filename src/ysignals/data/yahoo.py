@@ -37,13 +37,13 @@ def get_tickers():
 
 def get_ticker_data(db_dir):
     ticker_data = pd.DataFrame({
-        'ticker' : pd.Series([], dtype='str'),
+        'bloomberg_ticker' : pd.Series([], dtype='str'),
         'date' : pd.Series([], dtype='datetime64[ns]')
     })
     if len(list(db_dir.rglob('*.parquet'))) > 0:
         ticker_data = pd.read_parquet(db_dir)
 
-    logger.info(f'Retrieving data for {ticker_data.ticker.unique().shape[0]} '
+    logger.info(f'Retrieving data for {ticker_data.bloomberg_ticker.unique().shape[0]} '
                  'tickers from the database')
 
     return ticker_data
@@ -52,18 +52,17 @@ def get_ticker_data(db_dir):
 def get_ticker_missing(
     ticker_data, ticker_map, last_friday = datetime.today() - relativedelta(weekday=FR(-1))
 ):
-    tickers_available_data = ticker_data.groupby('ticker').agg({'date': [max, min]})
+    tickers_available_data = ticker_data.groupby('bloomberg_ticker').agg({'date': [max, min]})
     tickers_available_data.columns = ['date_max', 'date_min']
 
     eligible_tickers_available_data = ticker_map.merge(
         tickers_available_data.reset_index(),
-        left_on='bloomberg_ticker',
-        right_on='ticker',
+        on='bloomberg_ticker',
         how='left'
     )
 
     ticker_not_found = eligible_tickers_available_data.loc[
-        eligible_tickers_available_data.ticker_y.isna(), ['bloomberg_ticker', 'yahoo']
+        eligible_tickers_available_data.date_max.isna(), ['bloomberg_ticker', 'yahoo']
     ]
 
     ticker_not_found['start'] = '2002-12-01'
@@ -99,7 +98,6 @@ def get_data(
         targets['friday_date'],
         format='%Y%m%d'
     )
-    targets.rename(columns={'bloomberg_ticker': 'ticker'}, inplace=True)
 
     feature_names = []
     for features_generator in features_generators:
@@ -109,7 +107,7 @@ def get_data(
     # merge our feature data with Numerai targets
     ml_data = pd.merge(
         ticker_data, targets,
-        on=['date', 'ticker']
+        on=['date', 'bloomberg_ticker']
     )
 
     # convert date to datetime and index on it
@@ -137,7 +135,7 @@ def get_data(
 
     # Only select tickers than aren't already present in live_data
     thursday_data = thursday_data[
-        ~thursday_data.ticker.isin(live_data.ticker.values)
+        ~thursday_data.bloomberg_ticker.isin(live_data.bloomberg_ticker.values)
     ].copy()
 
     live_data = pd.concat([live_data, thursday_data])
@@ -173,20 +171,22 @@ def download_data(db_dir, recreate = False):
                                     start=start_date,
                                     threads=True)
         temp_df = temp_df.stack().reset_index().dropna()
-        temp_df.columns = ['date', 'ticker', 'adj_close', 'close', 'hight', 'low', 'open', 'volume']
+        temp_df.columns = [
+            'date', 'bloomberg_ticker', 'adj_close', 'close', 'hight', 'low', 'open', 'volume'
+        ]
         temp_df['created_at'] = datetime.now()
         temp_df['volume'] = temp_df['volume'].astype('float64')
+        temp_df['bloomberg_ticker'] = temp_df['bloomberg_ticker'].map(
+            dict(zip(ticker_map['yahoo'], ticker_map['bloomberg_ticker'])))
+        temp_df['provider'] = 'yahoo'
 
         # Yahoo Finance returning previous day in some situations (e.g. Friday in TelAviv markets)
         temp_df = temp_df[temp_df.date >= start_date]
 
-        temp_df['ticker'] = temp_df['ticker'].map(
-            dict(zip(ticker_map['yahoo'], ticker_map['bloomberg_ticker'])))
-
         concat_dfs.append(temp_df)
 
     df = pd.concat(concat_dfs)
-    n_ticker_data = df.ticker.unique().shape[0]
+    n_ticker_data = df.bloomberg_ticker.unique().shape[0]
     if n_ticker_data <= 0:
         logger.info(f'Dataset up to date')
         return

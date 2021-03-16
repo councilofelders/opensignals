@@ -45,7 +45,7 @@ class RSI:
     def generate_features(self, ticker_data):
         # add Relative Strength Index
         logger.info('generating RSI for each price...')
-        ticker_groups = ticker_data.groupby('ticker')
+        ticker_groups = ticker_data.groupby('bloomberg_ticker')
         ticker_data['RSI'] = ticker_groups['adj_close'].transform(
             lambda x: self.relative_strength_index(x, self.interval)
         )
@@ -65,7 +65,7 @@ class RSI:
 
         # create lagged features grouped by ticker
         logger.info('grouping by ticker...')
-        ticker_groups = ticker_data.groupby('ticker')
+        ticker_groups = ticker_data.groupby('bloomberg_ticker')
 
         # lag 0 is that day's value, lag 1 is yesterday's value, etc
         logger.info('generating lagged RSI quintiles...')
