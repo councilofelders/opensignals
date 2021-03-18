@@ -172,7 +172,7 @@ def download_data(db_dir, recreate = False):
                                     threads=True)
         temp_df = temp_df.stack().reset_index().dropna()
         temp_df.columns = [
-            'date', 'bloomberg_ticker', 'adj_close', 'close', 'hight', 'low', 'open', 'volume'
+            'date', 'bloomberg_ticker', 'adj_close', 'close', 'high', 'low', 'open', 'volume'
         ]
         temp_df['created_at'] = datetime.now()
         temp_df['volume'] = temp_df['volume'].astype('float64')
