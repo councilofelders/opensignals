@@ -108,14 +108,18 @@ def get_data(
     # merge our feature data with Numerai targets
     ml_data = pd.merge(
         ticker_data, targets,
-        on=['date', 'bloomberg_ticker']
+        on=['date', 'bloomberg_ticker'],
+        how='left'
     )
+
+    logger.info(f'Found {ml_data.target.isna().sum()} rows without target, filling with 0.5')
+    ml_data['target'] = ml_data['target'].fillna(0.5)
 
     # convert date to datetime and index on it
     ml_data = ml_data.set_index('date')
 
     # for training and testing we want clean, complete data only
-    ml_data.dropna(inplace=True)
+    ml_data = ml_data.dropna(subset=feature_names)
     # ensure we have only fridays
     ml_data = ml_data[ml_data.index.weekday == 4]
     # drop eras with under 50 observations per era
