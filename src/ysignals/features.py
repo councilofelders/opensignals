@@ -43,18 +43,19 @@ class RSI:
         return rsi
 
     @staticmethod
-    def get_feature_names(num_days, interval):
+    def get_feature_names(num_days, prefix_name):
         # define column names of features, target, and prediction
-        feat_quintile_lag = [f'RSI_{interval}_quintile_lag_{num}' for num in range(num_days + 1)]
-        feat_rsi_diff = [f'RSI_{interval}_diff_{num}' for num in range(num_days)]
-        feat_rsi_diff_abs = [f'RSI_{interval}_abs_diff_{num}' for num in range(num_days)]
+        feat_quintile_lag = [f'{prefix_name}_quintile_lag_{num}' for num in range(num_days + 1)]
+        feat_rsi_diff = [f'{prefix_name}_diff_{num}' for num in range(num_days)]
+        feat_rsi_diff_abs = [f'{prefix_name}_abs_diff_{num}' for num in range(num_days)]
         return feat_quintile_lag, feat_rsi_diff, feat_rsi_diff_abs
 
     def generate_features(self, ticker_data):
         # add Relative Strength Index
         logger.info(f'generating RSI {self.interval} for {self.variable}...')
+        feature_prefix_name = f'RSI_{self.interval}_{self.variable}'
         ticker_groups = ticker_data.groupby('bloomberg_ticker')
-        ticker_data[f'RSI_{self.interval}'] = ticker_groups[self.variable].transform(
+        ticker_data[feature_prefix_name] = ticker_groups[self.variable].transform(
             lambda x: self.relative_strength_index(x, self.interval)
         )
 
@@ -64,14 +65,14 @@ class RSI:
 
         # create quintile labels within each era, useful for learning relative ranking
         logger.debug('generating RSI quintiles...')
-        ticker_data[f'RSI_{self.interval}_quintile'] = date_groups[f'RSI_{self.interval}'].transform(
+        ticker_data[f'{feature_prefix_name}_quintile'] = date_groups[feature_prefix_name].transform(
             lambda group: pd.qcut(group, 5, labels=False, duplicates='drop')
         )
         ticker_data.dropna(inplace=True)
 
         (
             feat_quintile_lag, feat_rsi_diff, feat_rsi_diff_abs
-        ) = self.get_feature_names(self.num_days, self.interval)
+        ) = self.get_feature_names(self.num_days, feature_prefix_name)
 
         # create lagged features grouped by ticker
         logger.debug('grouping by ticker...')
@@ -80,7 +81,7 @@ class RSI:
         # lag 0 is that day's value, lag 1 is yesterday's value, etc
         logger.debug('generating lagged RSI quintiles...')
         for day in range(self.num_days + 1):
-            ticker_data[feat_quintile_lag[day]] = ticker_groups[f'RSI_{self.interval}_quintile'].transform(
+            ticker_data[feat_quintile_lag[day]] = ticker_groups[f'{feature_prefix_name}_quintile'].transform(
                 lambda group: group.shift(day)
             )
 
@@ -107,18 +108,19 @@ class SMA:
         return prices.rolling(interval).mean()
 
     @staticmethod
-    def get_feature_names(num_days, interval):
+    def get_feature_names(num_days, prefix_name):
         # define column names of features, target, and prediction
-        feat_quintile_lag = [f'SMA_{interval}_quintile_lag_{num}' for num in range(num_days + 1)]
-        feat_sma_diff = [f'SMA_{interval}_diff_{num}' for num in range(num_days)]
-        feat_sma_diff_abs = [f'SMA_{interval}_abs_diff_{num}' for num in range(num_days)]
-        return feat_quintile_lag, feat_sma_diff, feat_sma_diff_abs
+        feat_quintile_lag = [f'{prefix_name}_quintile_lag_{num}' for num in range(num_days + 1)]
+        feat_rsi_diff = [f'{prefix_name}_diff_{num}' for num in range(num_days)]
+        feat_rsi_diff_abs = [f'{prefix_name}_abs_diff_{num}' for num in range(num_days)]
+        return feat_quintile_lag, feat_rsi_diff, feat_rsi_diff_abs
 
     def generate_features(self, ticker_data):
         # add Relative Strength Index
         logger.info(f'generating SMA {self.interval} for {self.variable}...')
+        feature_prefix_name = f'SMA_{self.interval}_{self.variable}'
         ticker_groups = ticker_data.groupby('bloomberg_ticker')
-        ticker_data[f'SMA_{self.interval}'] = ticker_groups[self.variable].transform(
+        ticker_data[feature_prefix_name] = ticker_groups[self.variable].transform(
             lambda x: self.simple_moving_average(x, self.interval)
         )
 
@@ -128,14 +130,14 @@ class SMA:
 
         # create quintile labels within each era, useful for learning relative ranking
         logger.debug('generating SMA quintiles...')
-        ticker_data[f'SMA_{self.interval}_quintile'] = date_groups[f'SMA_{self.interval}'].transform(
+        ticker_data[f'{feature_prefix_name}_quintile'] = date_groups[feature_prefix_name].transform(
             lambda group: pd.qcut(group, 5, labels=False, duplicates='drop')
         )
         ticker_data.dropna(inplace=True)
 
         (
             feat_quintile_lag, feat_sma_diff, feat_sma_diff_abs
-        ) = self.get_feature_names(self.num_days, self.interval)
+        ) = self.get_feature_names(self.num_days, feature_prefix_name)
 
         # create lagged features grouped by ticker
         logger.debug('grouping by ticker...')
@@ -144,7 +146,7 @@ class SMA:
         # lag 0 is that day's value, lag 1 is yesterday's value, etc
         logger.debug('generating lagged SMA quintiles...')
         for day in range(self.num_days + 1):
-            ticker_data[feat_quintile_lag[day]] = ticker_groups[f'SMA_{self.interval}_quintile'].transform(
+            ticker_data[feat_quintile_lag[day]] = ticker_groups[f'{feature_prefix_name}_quintile'].transform(
                 lambda group: group.shift(day)
             )
 
