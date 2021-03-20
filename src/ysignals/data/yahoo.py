@@ -14,10 +14,8 @@ SIGNALS_TICKER_MAP=f'{AWS_BASE_URL}/signals_ticker_map_w_bbg.csv'
 SIGNALS_TARGETS=f'{AWS_BASE_URL}/signals_train_val_bbg.csv'
 
 def get_tickers():
-    ticker_universe = pd.read_csv(SIGNALS_UNIVERSE)
     ticker_map = pd.read_csv(SIGNALS_TICKER_MAP)
     ticker_map = ticker_map.dropna(subset=['yahoo'])
-    ticker_map = ticker_map[ticker_map.bloomberg_ticker.isin(ticker_universe['bloomberg_ticker'])]
     logger.info(f'Number of eligible tickers: {ticker_map.shape[0]}')
 
     if ticker_map['yahoo'].duplicated().any():
@@ -92,6 +90,9 @@ def get_data(
     last_friday = datetime.today() - relativedelta(weekday=FR(-1))
 ):
     ticker_data = get_ticker_data(db_dir)
+
+    ticker_universe = pd.read_csv(SIGNALS_UNIVERSE)
+    ticker_data = ticker_data[ticker_data.bloomberg_ticker.isin(ticker_universe['bloomberg_ticker'])]
 
     targets = pd.read_csv(SIGNALS_TARGETS)
     targets['date'] = pd.to_datetime(
