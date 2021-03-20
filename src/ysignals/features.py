@@ -6,6 +6,13 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
+class DayChange:
+    def generate_features(self, ticker_data):
+        logger.info(f'generating day change...')
+        ticker_data['day_change'] = ticker_data['close'] / ticker_data['open'] - 1
+        return ticker_data, []
+
+
 class RSI:
     def __init__(self, num_days=5, interval=10, variable='adj_close'):
         self.num_days=num_days
@@ -45,7 +52,7 @@ class RSI:
 
     def generate_features(self, ticker_data):
         # add Relative Strength Index
-        logger.info(f'generating RSI {self.interval} for each price...')
+        logger.info(f'generating RSI {self.interval} for {self.variable}...')
         ticker_groups = ticker_data.groupby('bloomberg_ticker')
         ticker_data[f'RSI_{self.interval}'] = ticker_groups[self.variable].transform(
             lambda x: self.relative_strength_index(x, self.interval)
@@ -109,7 +116,7 @@ class SMA:
 
     def generate_features(self, ticker_data):
         # add Relative Strength Index
-        logger.info(f'generating SMA {self.interval} for each price...')
+        logger.info(f'generating SMA {self.interval} for {self.variable}...')
         ticker_groups = ticker_data.groupby('bloomberg_ticker')
         ticker_data[f'SMA_{self.interval}'] = ticker_groups[self.variable].transform(
             lambda x: self.simple_moving_average(x, self.interval)
