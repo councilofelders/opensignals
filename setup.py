@@ -27,10 +27,12 @@ setup(
     include_package_data=True,
     install_requires=[
         'docopt',
+        'pandas==1.2.2',
+        'numpy==1.20.1',
+        'pyarrow==3.0.0',
         'yfinance @ git+http://github.com/jrdi/yfinance.git@master#egg=yfinance',
     ],
     extras_require=dict(
-        # these dependencies are not in environment.yml
         test=[
             'pytest==5.1.2',
             'pytest-cov==2.7.1',
