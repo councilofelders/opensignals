@@ -6,10 +6,20 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-class DayChange:
+class VarChange:
+    def __init__(self, num_days=1, variable='adj_close'):
+        self.num_days=num_days
+        self.variable=variable
+
     def generate_features(self, ticker_data):
-        logger.info(f'generating day change...')
-        ticker_data['day_change'] = ticker_data['close'] / ticker_data['open'] - 1
+        logger.info(f'generating var change {self.num_days} for {self.variable}...')
+        feature_prefix_name = f'{self.variable}_x{self.num_days}'
+        ticker_groups = ticker_data.groupby('bloomberg_ticker')
+        ticker_data[feature_prefix_name] = ticker_groups[self.variable].transform(
+            lambda x: x.shift(self.num_days)
+        )
+
+        ticker_data[f'{feature_prefix_name}_diff'] = ticker_data[self.variable] / ticker_data[feature_prefix_name] - 1
         return ticker_data, []
 
 
