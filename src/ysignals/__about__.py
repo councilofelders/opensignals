@@ -1,6 +1,6 @@
 """Contain information about the project."""
 __package_name__ = 'ysignals'
-__version__ = '0.0.1-rc0'
+__version__ = '0.0.1-rc1'
 
 __description__ = 'Yahoo Signals'
 

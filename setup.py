@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from setuptools import setup, find_packages
 
@@ -9,8 +8,6 @@ with metadata_path.open() as file:
 exec(raw_code, metadata)
 metadata = {key.strip('_'): value for key, value in metadata.items()}
 metadata['name'] = metadata.pop('package_name')
-
-kognia_path = Path(__file__).resolve().parent.parent
 
 setup(
     long_description=open('README.md').read(),
@@ -30,7 +27,6 @@ setup(
         'pandas==1.2.2',
         'numpy==1.20.1',
         'pyarrow==3.0.0',
-        'yfinance @ git+http://github.com/jrdi/yfinance.git@master#egg=yfinance',
     ],
     extras_require=dict(
         test=[

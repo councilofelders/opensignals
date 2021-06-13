@@ -1,9 +1,12 @@
 import shutil
 import pandas as pd
-import yfinance
 import logging
+import time as _time
+import requests
 
-from datetime import datetime
+from tqdm import tqdm
+from concurrent import futures
+from datetime import datetime, date, time
 from dateutil.relativedelta import relativedelta, FR
 
 logger = logging.getLogger(__name__)
@@ -65,11 +68,11 @@ def get_ticker_missing(
 
     ticker_not_found['start'] = '2002-12-01'
 
-    last_friday_20 = last_friday - relativedelta(days=20)
+    last_friday_52 = last_friday - relativedelta(weeks=52)
     tickers_outdated = eligible_tickers_available_data.loc[
         (
             (eligible_tickers_available_data.date_max < last_friday.strftime('%Y-%m-%d')) &
-            (eligible_tickers_available_data.date_max > last_friday_20.strftime('%Y-%m-%d'))
+            (eligible_tickers_available_data.date_max > last_friday_52.strftime('%Y-%m-%d'))
         ),
         ['bloomberg_ticker', 'yahoo', 'date_max']
     ]
@@ -149,6 +152,87 @@ def get_data(
     return train_data, test_data, live_data, feature_names
 
 
+def download_tickers(tickers, start):
+    start_epoch = int(datetime.strptime(start, '%Y-%m-%d').timestamp())
+    end_epoch = int(datetime.combine(date.today(), time()).timestamp())
+
+    pbar = tqdm(
+        total=len(tickers),
+        unit='tickers'
+    )
+
+    dfs = {}
+    with futures.ThreadPoolExecutor() as executor:
+        _futures = []
+        for ticker in tickers:
+            _futures.append(
+                executor.submit(download_ticker, ticker=ticker, start_epoch=start_epoch, end_epoch=end_epoch)
+            )
+
+        for future in futures.as_completed(_futures):
+            pbar.update(1)
+            ticker, data = future.result()
+            dfs[ticker] = data
+
+    pbar.close()
+
+    return pd.concat(dfs)
+
+
+def download_ticker(ticker, start_epoch, end_epoch):
+    retries = 20
+    backoff = 1
+    url = f'https://query1.finance.yahoo.com/v8/finance/chart/{ticker}'
+    params = dict(
+        period1=start_epoch,
+        period2=end_epoch,
+        interval='1d',
+        events='div,splits',
+    )
+    data = requests.get(url=url, params=params)
+    while(retries > 0):
+        retries -= 1
+        try:
+            data = requests.get(url=url, params=params)
+            data_json = data.json()
+            quotes = data_json["chart"]["result"][0]
+            if "timestamp" not in quotes:
+                return ticker, pd.DataFrame()
+
+            timestamps = quotes["timestamp"]
+            ohlc = quotes["indicators"]["quote"][0]
+            volumes = ohlc["volume"]
+            opens = ohlc["open"]
+            closes = ohlc["close"]
+            lows = ohlc["low"]
+            highs = ohlc["high"]
+
+            adjclose = closes
+            if "adjclose" in quotes["indicators"]:
+                adjclose = quotes["indicators"]["adjclose"][0]["adjclose"]
+
+            df = pd.DataFrame({
+                "date": pd.to_datetime(timestamps, unit="s").normalize(),
+                "bloomberg_ticker": ticker,
+                "open": opens,
+                "high": highs,
+                "low": lows,
+                "close": closes,
+                "adj_close": adjclose,
+                "volume": volumes,
+                "currency": quotes['meta']['currency'],
+                "provider": 'yahoo'
+            })
+
+            return ticker, df.drop_duplicates().dropna()
+
+        except Exception as e:
+            _time.sleep(backoff)
+            backoff = min(backoff * 2, 30)
+
+    return ticker, pd.DataFrame()
+
+
 def download_data(db_dir, recreate = False):
     if recreate:
         logging.warn(f'Removing dataset {db_dir} to recreate it')
@@ -172,23 +256,23 @@ def download_data(db_dir, recreate = False):
     )
     concat_dfs = []
     for start_date, tickers in ticker_missing_grouped.iteritems():
-        temp_df = yfinance.download(tickers,
-                                    start=start_date,
-                                    threads=True)
-        temp_df = temp_df.stack().reset_index().dropna()
-        temp_df.columns = [
-            'date', 'bloomberg_ticker', 'adj_close', 'close', 'high', 'low', 'open', 'volume'
-        ]
+        temp_df = download_tickers(tickers.split(' '), start=start_date)
+        if temp_df.empty:
+            continue
+
         temp_df['created_at'] = datetime.now()
         temp_df['volume'] = temp_df['volume'].astype('float64')
         temp_df['bloomberg_ticker'] = temp_df['bloomberg_ticker'].map(
             dict(zip(ticker_map['yahoo'], ticker_map['bloomberg_ticker'])))
-        temp_df['provider'] = 'yahoo'
 
         # Yahoo Finance returning previous day in some situations (e.g. Friday in TelAviv markets)
         temp_df = temp_df[temp_df.date >= start_date]
 
         concat_dfs.append(temp_df)
+
+    if len(concat_dfs) == 0:
+        logger.info(f'Dataset up to date')
+        return
 
     df = pd.concat(concat_dfs)
     n_ticker_data = df.bloomberg_ticker.unique().shape[0]
