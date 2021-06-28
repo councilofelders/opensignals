@@ -1,7 +1,7 @@
 from pathlib import Path
 from setuptools import setup, find_packages
 
-metadata_path = Path(__file__).parent / 'src' / 'ysignals' / '__about__.py'
+metadata_path = Path(__file__).parent / 'src' / 'opensignals' / '__about__.py'
 metadata = {}
 with metadata_path.open() as file:
     raw_code = file.read()
@@ -12,9 +12,9 @@ metadata['name'] = metadata.pop('package_name')
 setup(
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/jrdi/ysignals',
+    url='https://github.com/councilofelders/opensignals',
     project_urls={
-        'Bug Tracker': 'https://github.com/jrdi/ysignals/issues',
+        'Bug Tracker': 'https://github.com/councilofelders/opensignals/issues',
     },
     packages=find_packages('src'),
     package_dir={'': 'src'},
@@ -42,7 +42,7 @@ setup(
     ),
     entry_points={
         'console_scripts': [
-            'ysignals = ysignals.__main__:main',
+            'opensignals = opensignals.__main__:main',
         ]
     },
     **metadata,

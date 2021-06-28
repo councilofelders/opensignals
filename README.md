@@ -1,9 +1,9 @@
-# ysignals
+# Open Signals
 
 ## Install
 
 ```
-pip install -U ysignals
+pip install -U opensignals
 ```
 
 ## Usage
@@ -11,8 +11,8 @@ pip install -U ysignals
 ```python
 from pathlib import Path
 
-from ysignals.data import yahoo
-from ysignals.features import RSI, SMA
+from opensignals.data import yahoo
+from opensignals.features import RSI, SMA
 
 db_dir = Path('db')
 

@@ -1,8 +1,8 @@
 """Contain information about the project."""
-__package_name__ = 'ysignals'
-__version__ = '0.0.1-rc1'
+__package_name__ = 'opensignals'
+__version__ = '0.0.1-rc2'
 
-__description__ = 'Yahoo Signals'
+__description__ = 'Open Signals'
 
 __author__ = 'Jordi Villar'
 __author_email__ = 'jrdi.villar@gmail.com'

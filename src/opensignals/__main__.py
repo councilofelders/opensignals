@@ -1,11 +1,11 @@
 
-"""ysignals
+"""opensignals
 
 Usage:
-  ysignals [-v...]
-  ysignals -h | --help
-  ysignals --version
-  ysignals [options] download --dir=<dir> [--recreate]
+  opensignals [-v...]
+  opensignals -h | --help
+  opensignals --version
+  opensignals [options] download --dir=<dir> [--recreate]
 
 Options:
   -h --help         Show this screen.
@@ -13,7 +13,7 @@ Options:
   --verbose=<level> Increase verbosity. [default: 1]
 
 Commands:
-    ysignals download --dir=somedirectory [--recreate]
+    opensignals download --dir=somedirectory [--recreate]
         Download new data.
 
 """
@@ -23,9 +23,9 @@ from typing import List, Optional
 
 from docopt import docopt
 
-from ysignals import __version__
-from ysignals.data import yahoo
-from ysignals.features import RSI
+from opensignals import __version__
+from opensignals.data import yahoo
+from opensignals.features import RSI
 
 def main(argv: Optional[List[str]] = None) -> None:
     """Main entry point.
