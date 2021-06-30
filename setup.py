@@ -19,7 +19,7 @@ setup(
     packages=find_packages('src'),
     package_dir={'': 'src'},
     py_modules=[path.stem for path in Path('src').glob('*.py')],
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     zip_safe=True,
     include_package_data=True,
     install_requires=[
