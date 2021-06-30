@@ -28,6 +28,7 @@ setup(
         'numpy==1.20.1',
         'pyarrow==3.0.0',
         'requests',
+        'tqdm',
     ],
     extras_require=dict(
         test=[
