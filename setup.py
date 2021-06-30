@@ -27,6 +27,7 @@ setup(
         'pandas==1.2.2',
         'numpy==1.20.1',
         'pyarrow==3.0.0',
+        'requests',
     ],
     extras_require=dict(
         test=[
