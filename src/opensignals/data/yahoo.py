@@ -90,7 +90,8 @@ def get_ticker_missing(
 def get_data(
     db_dir,
     features_generators = [],
-    last_friday = datetime.today() - relativedelta(weekday=FR(-1))
+    last_friday = datetime.today() - relativedelta(weekday=FR(-1)),
+    target='target'
 ):
     ticker_data = get_ticker_data(db_dir)
 
@@ -102,6 +103,8 @@ def get_data(
         targets['friday_date'],
         format='%Y%m%d'
     )
+    targets['target_6d'] = targets['target']
+    targets['target'] = targets[target]
 
     feature_names = []
     for features_generator in features_generators:
