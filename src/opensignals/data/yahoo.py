@@ -185,7 +185,11 @@ def download_tickers(tickers, start):
 def download_ticker(ticker, start_epoch, end_epoch):
     retries = 20
     backoff = 1
-    url = f'https://query1.finance.yahoo.com/v8/finance/chart/{ticker}'
+    url = f'https://query2.finance.yahoo.com/v8/finance/chart/{ticker}'
+    user_agent = (
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko)'
+        ' Chrome/39.0.2171.95 Safari/537.36'
+    )
     params = dict(
         period1=start_epoch,
         period2=end_epoch,
@@ -196,7 +200,11 @@ def download_ticker(ticker, start_epoch, end_epoch):
     while(retries > 0):
         retries -= 1
         try:
-            data = requests.get(url=url, params=params)
+            data = requests.get(
+                url=url,
+                params=params,
+                headers={'User-Agent': user_agent}
+            )
             data_json = data.json()
             quotes = data_json["chart"]["result"][0]
             if "timestamp" not in quotes:
