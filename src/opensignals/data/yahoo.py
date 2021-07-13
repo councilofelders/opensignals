@@ -232,12 +232,12 @@ def download_ticker(ticker, start_epoch, end_epoch):
             df = pd.DataFrame({
                 "date": pd.to_datetime(timestamps, unit="s").normalize(),
                 "bloomberg_ticker": ticker,
-                "open": opens,
-                "high": highs,
-                "low": lows,
-                "close": closes,
-                "adj_close": adjclose,
-                "volume": volumes,
+                "open": opens.astype('float32'),
+                "high": highs.astype('float32'),
+                "low": lows.astype('float32'),
+                "close": closes.astype('float32'),
+                "adj_close": adjclose.astype('float32'),
+                "volume": volumes.astype('float32'),
                 "currency": quotes['meta']['currency'],
                 "provider": 'yahoo'
             })
