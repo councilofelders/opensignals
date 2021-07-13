@@ -183,6 +183,13 @@ def download_tickers(tickers, start):
 
 
 def download_ticker(ticker, start_epoch, end_epoch):
+    def empty_df():
+        return pd.DataFrame(columns=[
+            "date", "bloomberg_ticker",
+            "open", "high", "low", "close",
+            "adj_close", "adj_close", "volume",
+            "currency", "provider"])
+
     retries = 20
     backoff = 1
     url = f'https://query2.finance.yahoo.com/v8/finance/chart/{ticker}'
@@ -208,7 +215,7 @@ def download_ticker(ticker, start_epoch, end_epoch):
             data_json = data.json()
             quotes = data_json["chart"]["result"][0]
             if "timestamp" not in quotes:
-                return ticker, pd.DataFrame()
+                return ticker, empty_df()
 
             timestamps = quotes["timestamp"]
             ohlc = quotes["indicators"]["quote"][0]
@@ -241,7 +248,7 @@ def download_ticker(ticker, start_epoch, end_epoch):
             _time.sleep(backoff)
             backoff = min(backoff * 2, 30)
 
-    return ticker, pd.DataFrame()
+    return ticker, empty_df()
 
 
 def download_data(db_dir, recreate = False):
