@@ -1,13 +1,17 @@
 import shutil
+import numpy as np
 import pandas as pd
 import logging
 import time as _time
 import requests
+import random
 
 from tqdm import tqdm
 from concurrent import futures
 from datetime import datetime, date, time
 from dateutil.relativedelta import relativedelta, FR
+
+from opensignals import utils
 
 logger = logging.getLogger(__name__)
 
@@ -193,10 +197,7 @@ def download_ticker(ticker, start_epoch, end_epoch):
     retries = 20
     backoff = 1
     url = f'https://query2.finance.yahoo.com/v8/finance/chart/{ticker}'
-    user_agent = (
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko)'
-        ' Chrome/39.0.2171.95 Safari/537.36'
-    )
+    user_agent = random.choice(utils.USER_AGENTS)
     params = dict(
         period1=start_epoch,
         period2=end_epoch,
