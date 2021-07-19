@@ -191,8 +191,7 @@ def download_ticker(ticker, start_epoch, end_epoch):
         return pd.DataFrame(columns=[
             "date", "bloomberg_ticker",
             "open", "high", "low", "close",
-            "adj_close", "adj_close", "volume",
-            "currency", "provider"])
+            "adj_close", "volume", "currency", "provider"])
 
     retries = 20
     backoff = 1
@@ -276,6 +275,9 @@ def download_data(db_dir, recreate = False):
     concat_dfs = []
     for start_date, tickers in ticker_missing_grouped.iteritems():
         temp_df = download_tickers(tickers.split(' '), start=start_date)
+
+        # Yahoo Finance returning previous day in some situations (e.g. Friday in TelAviv markets)
+        temp_df = temp_df[temp_df.date >= start_date]
         if temp_df.empty:
             continue
 
@@ -283,9 +285,6 @@ def download_data(db_dir, recreate = False):
         temp_df['volume'] = temp_df['volume'].astype('float64')
         temp_df['bloomberg_ticker'] = temp_df['bloomberg_ticker'].map(
             dict(zip(ticker_map['yahoo'], ticker_map['bloomberg_ticker'])))
-
-        # Yahoo Finance returning previous day in some situations (e.g. Friday in TelAviv markets)
-        temp_df = temp_df[temp_df.date >= start_date]
 
         concat_dfs.append(temp_df)
 
