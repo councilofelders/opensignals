@@ -197,8 +197,6 @@ def download_ticker(ticker, start_epoch, end_epoch):
         method_whitelist=["HEAD", "GET", "OPTIONS"]
     )
     adapter = HTTPAdapter(max_retries=retry_strategy)
-    http_session = requests.Session()
-    http_session.mount("https://", adapter)
 
     def empty_df():
         return pd.DataFrame(columns=[
@@ -216,42 +214,44 @@ def download_ticker(ticker, start_epoch, end_epoch):
     )
 
     try:
-        data = http_session.get(
-            url=url,
-            params=params,
-            headers={'User-Agent': user_agent}
-        )
-        data_json = data.json()
-        quotes = data_json["chart"]["result"][0]
-        if "timestamp" not in quotes:
-            return ticker, empty_df()
+        with requests.Session() as http_session:
+            http_session.mount("https://", adapter)
+            data = http_session.get(
+                url=url,
+                params=params,
+                headers={'User-Agent': user_agent}
+            )
+            data_json = data.json()
+            quotes = data_json["chart"]["result"][0]
+            if "timestamp" not in quotes:
+                return ticker, empty_df()
 
-        timestamps = quotes["timestamp"]
-        ohlc = quotes["indicators"]["quote"][0]
-        volumes = ohlc["volume"]
-        opens = ohlc["open"]
-        closes = ohlc["close"]
-        lows = ohlc["low"]
-        highs = ohlc["high"]
+            timestamps = quotes["timestamp"]
+            ohlc = quotes["indicators"]["quote"][0]
+            volumes = ohlc["volume"]
+            opens = ohlc["open"]
+            closes = ohlc["close"]
+            lows = ohlc["low"]
+            highs = ohlc["high"]
 
-        adjclose = closes
-        if "adjclose" in quotes["indicators"]:
-            adjclose = quotes["indicators"]["adjclose"][0]["adjclose"]
+            adjclose = closes
+            if "adjclose" in quotes["indicators"]:
+                adjclose = quotes["indicators"]["adjclose"][0]["adjclose"]
 
-        df = pd.DataFrame({
-            "date": pd.to_datetime(timestamps, unit="s").normalize(),
-            "bloomberg_ticker": ticker,
-            "open": np.array(opens, dtype='float32'),
-            "high": np.array(highs, dtype='float32'),
-            "low": np.array(lows, dtype='float32'),
-            "close": np.array(closes, dtype='float32'),
-            "adj_close": np.array(adjclose, dtype='float32'),
-            "volume": np.array(volumes, dtype='float32'),
-            "currency": quotes['meta']['currency'],
-            "provider": 'yahoo'
-        })
+            df = pd.DataFrame({
+                "date": pd.to_datetime(timestamps, unit="s").normalize(),
+                "bloomberg_ticker": ticker,
+                "open": np.array(opens, dtype='float32'),
+                "high": np.array(highs, dtype='float32'),
+                "low": np.array(lows, dtype='float32'),
+                "close": np.array(closes, dtype='float32'),
+                "adj_close": np.array(adjclose, dtype='float32'),
+                "volume": np.array(volumes, dtype='float32'),
+                "currency": quotes['meta']['currency'],
+                "provider": 'yahoo'
+            })
 
-        return ticker, df.drop_duplicates().dropna()
+            return ticker, df.drop_duplicates().dropna()
 
     except MaxRetryError as e:
         logger.warn(f'Max retries {retry_strategy.total} exceeded while fetching data for {ticker}')
