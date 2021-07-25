@@ -2,7 +2,6 @@ import shutil
 import numpy as np
 import pandas as pd
 import logging
-import time as _time
 import requests
 import random
 
@@ -10,6 +9,9 @@ from tqdm import tqdm
 from concurrent import futures
 from datetime import datetime, date, time
 from dateutil.relativedelta import relativedelta, FR
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+from urllib3.exceptions import MaxRetryError
 
 from opensignals import utils
 
@@ -75,8 +77,8 @@ def get_ticker_missing(
     last_friday_52 = last_friday - relativedelta(weeks=52)
     tickers_outdated = eligible_tickers_available_data.loc[
         (
-            (eligible_tickers_available_data.date_max < last_friday.strftime('%Y-%m-%d')) &
-            (eligible_tickers_available_data.date_max > last_friday_52.strftime('%Y-%m-%d'))
+                (eligible_tickers_available_data.date_max < last_friday.strftime('%Y-%m-%d')) &
+                (eligible_tickers_available_data.date_max > last_friday_52.strftime('%Y-%m-%d'))
         ),
         ['bloomberg_ticker', 'yahoo', 'date_max']
     ]
@@ -187,14 +189,23 @@ def download_tickers(tickers, start):
 
 
 def download_ticker(ticker, start_epoch, end_epoch):
+    retry_strategy = Retry(
+        BACKOFF_MAX=30,
+        total=20,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        method_whitelist=["HEAD", "GET", "OPTIONS"]
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    http_session = requests.Session()
+    http_session.mount("https://", adapter)
+
     def empty_df():
         return pd.DataFrame(columns=[
             "date", "bloomberg_ticker",
             "open", "high", "low", "close",
             "adj_close", "volume", "currency", "provider"])
 
-    retries = 20
-    backoff = 1
     url = f'https://query2.finance.yahoo.com/v8/finance/chart/{ticker}'
     user_agent = random.choice(utils.USER_AGENTS)
     params = dict(
@@ -203,55 +214,51 @@ def download_ticker(ticker, start_epoch, end_epoch):
         interval='1d',
         events='div,splits',
     )
-    data = requests.get(url=url, params=params)
-    while(retries > 0):
-        retries -= 1
-        try:
-            data = requests.get(
-                url=url,
-                params=params,
-                headers={'User-Agent': user_agent}
-            )
-            data_json = data.json()
-            quotes = data_json["chart"]["result"][0]
-            if "timestamp" not in quotes:
-                return ticker, empty_df()
 
-            timestamps = quotes["timestamp"]
-            ohlc = quotes["indicators"]["quote"][0]
-            volumes = ohlc["volume"]
-            opens = ohlc["open"]
-            closes = ohlc["close"]
-            lows = ohlc["low"]
-            highs = ohlc["high"]
+    try:
+        data = http_session.get(
+            url=url,
+            params=params,
+            headers={'User-Agent': user_agent}
+        )
+        data_json = data.json()
+        quotes = data_json["chart"]["result"][0]
+        if "timestamp" not in quotes:
+            return ticker, empty_df()
 
-            adjclose = closes
-            if "adjclose" in quotes["indicators"]:
-                adjclose = quotes["indicators"]["adjclose"][0]["adjclose"]
+        timestamps = quotes["timestamp"]
+        ohlc = quotes["indicators"]["quote"][0]
+        volumes = ohlc["volume"]
+        opens = ohlc["open"]
+        closes = ohlc["close"]
+        lows = ohlc["low"]
+        highs = ohlc["high"]
 
-            df = pd.DataFrame({
-                "date": pd.to_datetime(timestamps, unit="s").normalize(),
-                "bloomberg_ticker": ticker,
-                "open": np.array(opens, dtype='float32'),
-                "high": np.array(highs, dtype='float32'),
-                "low": np.array(lows, dtype='float32'),
-                "close": np.array(closes, dtype='float32'),
-                "adj_close": np.array(adjclose, dtype='float32'),
-                "volume": np.array(volumes, dtype='float32'),
-                "currency": quotes['meta']['currency'],
-                "provider": 'yahoo'
-            })
+        adjclose = closes
+        if "adjclose" in quotes["indicators"]:
+            adjclose = quotes["indicators"]["adjclose"][0]["adjclose"]
 
-            return ticker, df.drop_duplicates().dropna()
+        df = pd.DataFrame({
+            "date": pd.to_datetime(timestamps, unit="s").normalize(),
+            "bloomberg_ticker": ticker,
+            "open": np.array(opens, dtype='float32'),
+            "high": np.array(highs, dtype='float32'),
+            "low": np.array(lows, dtype='float32'),
+            "close": np.array(closes, dtype='float32'),
+            "adj_close": np.array(adjclose, dtype='float32'),
+            "volume": np.array(volumes, dtype='float32'),
+            "currency": quotes['meta']['currency'],
+            "provider": 'yahoo'
+        })
 
-        except Exception as e:
-            _time.sleep(backoff)
-            backoff = min(backoff * 2, 30)
+        return ticker, df.drop_duplicates().dropna()
 
-    return ticker, empty_df()
+    except MaxRetryError as e:
+        logger.warn(f'Max retries {retry_strategy.total} exceeded while fetching data for {ticker}')
+        return ticker, empty_df()
 
 
-def download_data(db_dir, recreate = False):
+def download_data(db_dir, recreate=False):
     if recreate:
         logging.warn(f'Removing dataset {db_dir} to recreate it')
         shutil.rmtree(db_dir, ignore_errors=True)
