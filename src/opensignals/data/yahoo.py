@@ -190,12 +190,12 @@ def download_tickers(tickers, start):
 
 def download_ticker(ticker, start_epoch, end_epoch):
     retry_strategy = Retry(
-        BACKOFF_MAX=30,
         total=20,
         backoff_factor=1,
         status_forcelist=[429, 500, 502, 503, 504],
         method_whitelist=["HEAD", "GET", "OPTIONS"]
     )
+    retry_strategy.BACKOFF_MAX=30,
     adapter = HTTPAdapter(max_retries=retry_strategy)
 
     def empty_df():
