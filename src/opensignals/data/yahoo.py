@@ -77,8 +77,8 @@ def get_ticker_missing(
     last_friday_52 = last_friday - relativedelta(weeks=52)
     tickers_outdated = eligible_tickers_available_data.loc[
         (
-                (eligible_tickers_available_data.date_max < last_friday.strftime('%Y-%m-%d')) &
-                (eligible_tickers_available_data.date_max > last_friday_52.strftime('%Y-%m-%d'))
+            (eligible_tickers_available_data.date_max < last_friday.strftime('%Y-%m-%d')) &
+            (eligible_tickers_available_data.date_max > last_friday_52.strftime('%Y-%m-%d'))
         ),
         ['bloomberg_ticker', 'yahoo', 'date_max']
     ]
@@ -258,7 +258,7 @@ def download_ticker(ticker, start_epoch, end_epoch):
         return ticker, empty_df()
 
 
-def download_data(db_dir, recreate=False):
+def download_data(db_dir, recreate = False):
     if recreate:
         logging.warn(f'Removing dataset {db_dir} to recreate it')
         shutil.rmtree(db_dir, ignore_errors=True)
