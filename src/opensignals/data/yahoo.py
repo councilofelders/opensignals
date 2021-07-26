@@ -194,6 +194,7 @@ def download_ticker(ticker, start_epoch, end_epoch):
             "adj_close", "volume", "currency", "provider"])
 
     retries = 20
+    tries = retries + 1
     backoff = 1
     url = f'https://query2.finance.yahoo.com/v8/finance/chart/{ticker}'
     user_agent = random.choice(utils.USER_AGENTS)
@@ -203,9 +204,8 @@ def download_ticker(ticker, start_epoch, end_epoch):
         interval='1d',
         events='div,splits',
     )
-    data = requests.get(url=url, params=params)
-    while(retries > 0):
-        retries -= 1
+    while(tries > 0):
+        tries -= 1
         try:
             data = requests.get(
                 url=url,
