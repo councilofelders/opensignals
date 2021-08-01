@@ -10,7 +10,7 @@ from .common import get_data as get_data_generic
 from dateutil.relativedelta import relativedelta, FR
 
 
-FMP_API_KEY = os.environ['FMP_API_KEY']
+FMP_API_KEY = os.environ.get('FMP_API_KEY')
 
 
 def download_ticker(ticker, start_epoch, end_epoch):
