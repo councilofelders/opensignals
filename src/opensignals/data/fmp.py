@@ -1,13 +1,14 @@
 import datetime as dt
+import os
+import time as _time
+
+from dateutil.relativedelta import relativedelta, FR
 import numpy as np
 import pandas as pd
-import time as _time
 import requests
-import os
 
 from .common import download_data as download_data_generic
 from .common import get_data as get_data_generic
-from dateutil.relativedelta import relativedelta, FR
 
 
 FMP_API_KEY = os.environ.get('FMP_API_KEY')
@@ -49,7 +50,7 @@ def download_ticker(ticker, start_epoch, end_epoch):
             df.rename(columns={"adjClose": "adj_close"}, inplace=True)
             return ticker, df.drop_duplicates().dropna()
 
-        except Exception as e:
+        except Exception:
             _time.sleep(backoff)
             backoff = min(backoff * 2, 30)
 
@@ -59,11 +60,12 @@ def download_ticker(ticker, start_epoch, end_epoch):
 def download_data(db_dir, recreate=False):
     return download_data_generic(db_dir, download_ticker, recreate)
 
+
 def get_data(
         db_dir,
-        features_generators = [],
+        features_generators=None,
         last_friday=dt.datetime.today() - relativedelta(weekday=FR(-1)),
-        target='target'
+        target='target_20d'
 ): return get_data_generic(
     db_dir,
     features_generators=features_generators,

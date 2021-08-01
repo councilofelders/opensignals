@@ -1,17 +1,11 @@
-import random
-import shutil
+from concurrent import futures
 from datetime import datetime, date, time
 import logging
-import time as _time
-from concurrent import futures
+import shutil
 
-import numpy as np
-import pandas as pd
-import requests
-from tqdm import tqdm
 from dateutil.relativedelta import relativedelta, FR
-
-from opensignals import utils
+import pandas as pd
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +162,7 @@ def get_data(
     return train_data, test_data, live_data, feature_names
 
 
-def download_tickers(tickers, start):
+def download_tickers(tickers, start, download_ticker):
     start_epoch = int(datetime.strptime(start, '%Y-%m-%d').timestamp())
     end_epoch = int(datetime.combine(date.today(), time()).timestamp())
 
@@ -195,7 +189,7 @@ def download_tickers(tickers, start):
     return pd.concat(dfs)
 
 
-def download_data(db_dir, recreate=False):
+def download_data(db_dir, download_ticker, recreate=False):
     if recreate:
         logging.warning(f'Removing dataset {db_dir} to recreate it')
         shutil.rmtree(db_dir, ignore_errors=True)
@@ -218,7 +212,7 @@ def download_data(db_dir, recreate=False):
     )
     concat_dfs = []
     for start_date, tickers in ticker_missing_grouped.iteritems():
-        temp_df = download_tickers(tickers.split(' '), start=start_date)
+        temp_df = download_tickers(tickers.split(' '), start_date, download_ticker)
 
         # Yahoo Finance returning previous day in some situations
         # (e.g. Friday in TelAviv markets)
