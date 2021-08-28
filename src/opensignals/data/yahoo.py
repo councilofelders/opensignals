@@ -95,7 +95,7 @@ def get_data(
     db_dir,
     features_generators = [],
     last_friday = datetime.today() - relativedelta(weekday=FR(-1)),
-    target='target'
+    target='target_20d'
 ):
     ticker_data = get_ticker_data(db_dir)
 
@@ -107,7 +107,7 @@ def get_data(
         targets['friday_date'],
         format='%Y%m%d'
     )
-    targets['target_6d'] = targets['target']
+    targets['target_4d'] = targets['target_4d']
     targets['target'] = targets[target]
 
     feature_names = []
