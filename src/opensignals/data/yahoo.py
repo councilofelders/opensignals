@@ -107,7 +107,6 @@ def get_data(
         targets['friday_date'],
         format='%Y%m%d'
     )
-    targets['target_4d'] = targets['target_4d']
     targets['target'] = targets[target]
 
     feature_names = []
