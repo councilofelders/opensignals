@@ -23,9 +23,22 @@ class VarChange:
         return ticker_data, []
 
 
+def _parse_num_days(num_days):
+    if isinstance(num_days, int):
+        # +1 to be backwards compatible
+        steps = list(range(num_days + 1))
+    elif isinstance(num_days, list):
+        steps = sorted(num_days)
+        if steps[0] != 0:
+            steps = [0] + steps
+    else:
+        raise ValueError("`num_days` should be of int or list type")
+    return steps
+
+
 class RSI:
     def __init__(self, num_days=5, interval=10, variable='adj_close'):
-        self.num_days=num_days
+        self.steps = _parse_num_days(num_days)
         self.interval=interval
         self.variable=variable
 
@@ -52,12 +65,14 @@ class RSI:
         rsi = 100.0 - (100.0 / (1.0 + rs))
         return rsi
 
-    @staticmethod
-    def get_feature_names(num_days, prefix_name):
+    def get_feature_names(self, prefix_name):
         # define column names of features, target, and prediction
-        feat_quintile_lag = [f'{prefix_name}_quintile_lag_{num}' for num in range(num_days + 1)]
-        feat_rsi_diff = [f'{prefix_name}_diff_{num}' for num in range(num_days)]
-        feat_rsi_diff_abs = [f'{prefix_name}_abs_diff_{num}' for num in range(num_days)]
+        feat_quintile_lag = {step: f'{prefix_name}_quintile_lag_{step}'
+                             for step in self.steps}
+        feat_rsi_diff = {step: f'{prefix_name}_diff_{step}'
+                         for step in self.steps[:-1]}
+        feat_rsi_diff_abs = {step: f'{prefix_name}_abs_diff_{step}'
+                             for step in self.steps[:-1]}
         return feat_quintile_lag, feat_rsi_diff, feat_rsi_diff_abs
 
     def generate_features(self, ticker_data):
@@ -82,7 +97,7 @@ class RSI:
 
         (
             feat_quintile_lag, feat_rsi_diff, feat_rsi_diff_abs
-        ) = self.get_feature_names(self.num_days, feature_prefix_name)
+        ) = self.get_feature_names(feature_prefix_name)
 
         # create lagged features grouped by ticker
         logger.debug('grouping by ticker...')
@@ -90,7 +105,7 @@ class RSI:
 
         # lag 0 is that day's value, lag 1 is yesterday's value, etc
         logger.debug('generating lagged RSI quintiles...')
-        for day in range(self.num_days + 1):
+        for day in self.steps:
             ticker_data[feat_quintile_lag[day]] = ticker_groups[f'{feature_prefix_name}_quintile'].transform(
                 lambda group: group.shift(day)
             )
@@ -98,18 +113,19 @@ class RSI:
         # create difference of the lagged features and
         # absolute difference of the lagged features (change in RSI quintile by day)
         logger.debug('generating lagged RSI diffs...')
-        for day in range(self.num_days):
-            ticker_data[feat_rsi_diff[day]] = (
-                ticker_data[feat_quintile_lag[day]] - ticker_data[feat_quintile_lag[day + 1]]
-            )
-            ticker_data[feat_rsi_diff_abs[day]] = np.abs(ticker_data[feat_rsi_diff[day]])
 
-        return ticker_data, feat_quintile_lag + feat_rsi_diff + feat_rsi_diff_abs
+        for i in range(len(self.steps) - 1):
+            ticker_data[feat_rsi_diff[self.steps[i]]] = (
+                ticker_data[feat_quintile_lag[self.steps[i]]] - ticker_data[feat_quintile_lag[self.steps[i + 1]]]
+            )
+            ticker_data[feat_rsi_diff_abs[self.steps[i]]] = np.abs(ticker_data[feat_rsi_diff[self.steps[i]]])
+
+        return ticker_data, list(feat_quintile_lag.values()) + list(feat_rsi_diff.values()) + list(feat_rsi_diff_abs.values())
 
 
 class SMA:
-    def __init__(self,  num_days=5, interval=10, variable='adj_close'):
-        self.num_days=num_days
+    def __init__(self, num_days=5, interval=10, variable='adj_close'):
+        self.steps = _parse_num_days(num_days)
         self.interval=interval
         self.variable=variable
 
@@ -117,12 +133,14 @@ class SMA:
     def simple_moving_average(prices, interval):
         return prices.rolling(interval).mean()
 
-    @staticmethod
-    def get_feature_names(num_days, prefix_name):
+    def get_feature_names(self, prefix_name):
         # define column names of features, target, and prediction
-        feat_quintile_lag = [f'{prefix_name}_quintile_lag_{num}' for num in range(num_days + 1)]
-        feat_rsi_diff = [f'{prefix_name}_diff_{num}' for num in range(num_days)]
-        feat_rsi_diff_abs = [f'{prefix_name}_abs_diff_{num}' for num in range(num_days)]
+        feat_quintile_lag = {step: f'{prefix_name}_quintile_lag_{step}'
+                             for step in self.steps}
+        feat_rsi_diff = {step: f'{prefix_name}_diff_{step}'
+                         for step in self.steps[:-1]}
+        feat_rsi_diff_abs = {step: f'{prefix_name}_abs_diff_{step}'
+                             for step in self.steps[:-1]}
         return feat_quintile_lag, feat_rsi_diff, feat_rsi_diff_abs
 
     def generate_features(self, ticker_data):
@@ -147,7 +165,7 @@ class SMA:
 
         (
             feat_quintile_lag, feat_sma_diff, feat_sma_diff_abs
-        ) = self.get_feature_names(self.num_days, feature_prefix_name)
+        ) = self.get_feature_names(feature_prefix_name)
 
         # create lagged features grouped by ticker
         logger.debug('grouping by ticker...')
@@ -155,7 +173,7 @@ class SMA:
 
         # lag 0 is that day's value, lag 1 is yesterday's value, etc
         logger.debug('generating lagged SMA quintiles...')
-        for day in range(self.num_days + 1):
+        for day in self.steps:
             ticker_data[feat_quintile_lag[day]] = ticker_groups[f'{feature_prefix_name}_quintile'].transform(
                 lambda group: group.shift(day)
             )
@@ -163,10 +181,10 @@ class SMA:
         # create difference of the lagged features and
         # absolute difference of the lagged features (change in SMA quintile by day)
         logger.debug('generating lagged SMA diffs...')
-        for day in range(self.num_days):
-            ticker_data[feat_sma_diff[day]] = (
-                ticker_data[feat_quintile_lag[day]] - ticker_data[feat_quintile_lag[day + 1]]
-            )
-            ticker_data[feat_sma_diff_abs[day]] = np.abs(ticker_data[feat_sma_diff[day]])
+        for i in range(len(self.steps) - 1):
+            ticker_data[feat_sma_diff[self.steps[i]]] = (
+                ticker_data[feat_quintile_lag[self.steps[i]]] -
+                ticker_data[feat_quintile_lag[self.steps[i + 1]]])
+            ticker_data[feat_sma_diff_abs[self.steps[i]]] = np.abs(ticker_data[feat_sma_diff[self.steps[i]]])
 
-        return ticker_data, feat_quintile_lag + feat_sma_diff + feat_sma_diff_abs
+        return ticker_data, list(feat_quintile_lag.values()) + list(feat_sma_diff.values()) + list(feat_sma_diff_abs.values())
