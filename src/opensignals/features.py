@@ -39,6 +39,8 @@ def _parse_num_days(num_days):
 
 
 class RSI:
+    """Relative Strength Index"""
+
     def __init__(self, num_days=5, interval=10, variable='adj_close'):
         self.steps = _parse_num_days(num_days)
         self.interval = interval
@@ -138,6 +140,8 @@ class RSI:
 
 
 class SMA:
+    """Simple Moving Average"""
+
     def __init__(self, num_days=5, interval=10, variable='adj_close'):
         self.steps = _parse_num_days(num_days)
         self.interval = interval
