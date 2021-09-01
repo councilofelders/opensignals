@@ -27,12 +27,15 @@ from opensignals import __version__
 from opensignals.data import yahoo
 from opensignals.features import RSI
 
+
 def main(argv: Optional[List[str]] = None) -> None:
     """Main entry point.
 
     Args:
-        argv (list of str, optional): Anything passed here will be treated as sys.argv[1:]
-            (command-line arguments minus the entry point itself). Useful for testing.
+        argv (list of str, optional): Anything passed here will be
+            treated as sys.argv[1:]
+            (command-line arguments minus the entry point itself).
+        Useful for testing.
 
     """
     args = docopt(__doc__, version=__version__)
