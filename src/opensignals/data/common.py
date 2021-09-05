@@ -1,5 +1,6 @@
 from concurrent import futures
 from datetime import datetime, date, time
+import time as _time
 import logging
 import shutil
 
@@ -181,7 +182,7 @@ def download_ticker_with_retry(ticker, start_epoch, end_epoch, download_ticker):
         try:
             return download_ticker(ticker, start_epoch, end_epoch)
         except Exception:
-            time.sleep(backoff)
+            _time.sleep(backoff)
             backoff = min(backoff * 2, 30)
 
     return ticker, empty_df()
