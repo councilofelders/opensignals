@@ -15,6 +15,13 @@ SIGNALS_TICKER_MAP = f'{AWS_BASE_URL}/signals_ticker_map_w_bbg.csv'
 SIGNALS_TARGETS = f'{AWS_BASE_URL}/signals_train_val_bbg.csv'
 
 
+def empty_df():
+    return pd.DataFrame(columns=[
+        "date", "bloomberg_ticker",
+        "open", "high", "low", "close",
+        "adj_close", "volume", "currency", "provider"])
+
+
 def get_tickers():
     ticker_map = pd.read_csv(SIGNALS_TICKER_MAP)
     ticker_map = ticker_map.dropna(subset=['yahoo'])
@@ -162,6 +169,24 @@ def get_data(
     return train_data, test_data, live_data, feature_names
 
 
+def download_ticker_with_retry(ticker, start_epoch, end_epoch, download_ticker):
+    """Download data with retry"""
+
+    retries = 3
+    tries = retries + 1
+    backoff = 1
+
+    while tries > 0:
+        tries -= 1
+        try:
+            return download_ticker(ticker, start_epoch, end_epoch)
+        except Exception:
+            time.sleep(backoff)
+            backoff = min(backoff * 2, 30)
+
+    return ticker, empty_df()
+
+
 def download_tickers(tickers, start, download_ticker):
     start_epoch = int(datetime.strptime(start, '%Y-%m-%d').timestamp())
     end_epoch = int(datetime.combine(date.today(), time()).timestamp())
@@ -176,7 +201,8 @@ def download_tickers(tickers, start, download_ticker):
         _futures = []
         for ticker in tickers:
             _futures.append(
-                executor.submit(download_ticker, ticker=ticker, start_epoch=start_epoch, end_epoch=end_epoch)
+                executor.submit(download_ticker_with_retry, ticker=ticker, start_epoch=start_epoch,
+                                end_epoch=end_epoch, download_ticker=download_ticker)
             )
 
         for future in futures.as_completed(_futures):
