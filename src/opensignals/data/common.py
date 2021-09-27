@@ -23,8 +23,9 @@ def empty_df():
         "adj_close", "volume", "currency", "provider"])
 
 
-def get_tickers():
-    ticker_map = pd.read_csv(SIGNALS_TICKER_MAP)
+def get_tickers(ticker_map):
+    if ticker_map is None:
+        ticker_map = pd.read_csv(SIGNALS_TICKER_MAP)
     ticker_map = ticker_map.dropna(subset=['yahoo'])
     logger.info(f'Number of eligible tickers: {ticker_map.shape[0]}')
 
@@ -101,15 +102,18 @@ def get_data(
         db_dir,
         features_generators=None,
         last_friday=datetime.today() - relativedelta(weekday=FR(-1)),
-        target='target_20d'):
+        target='target_20d',
+        ticker_map=None):
     """generate data set"""
 
     if features_generators is None:
         features_generators = []
 
     ticker_data = get_ticker_data(db_dir)
-
-    ticker_universe = pd.read_csv(SIGNALS_UNIVERSE)
+    if ticker_map is None:
+        ticker_universe = pd.read_csv(SIGNALS_UNIVERSE)
+    else:
+        ticker_universe = ticker_map
     ticker_data = ticker_data[ticker_data.bloomberg_ticker.isin(
         ticker_universe['bloomberg_ticker'])]
 
@@ -216,7 +220,7 @@ def download_tickers(tickers, start, download_ticker):
     return pd.concat(dfs)
 
 
-def download_data(db_dir, download_ticker, recreate=False):
+def download_data(db_dir, download_ticker, recreate=False, ticker_map=None):
     if recreate:
         logging.warning(f'Removing dataset {db_dir} to recreate it')
         shutil.rmtree(db_dir, ignore_errors=True)
@@ -224,7 +228,7 @@ def download_data(db_dir, download_ticker, recreate=False):
     db_dir.mkdir(exist_ok=True)
 
     ticker_data = get_ticker_data(db_dir)
-    ticker_map = get_tickers()
+    ticker_map = get_tickers(ticker_map)
     ticker_missing = get_ticker_missing(ticker_data, ticker_map)
 
     n_ticker_missing = ticker_missing.shape[0]

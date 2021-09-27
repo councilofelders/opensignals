@@ -60,20 +60,22 @@ def download_ticker(ticker, start_epoch, end_epoch):
     return ticker, df.drop_duplicates().dropna()
 
 
-def download_data(db_dir, recreate=False):
+def download_data(db_dir, recreate=False, ticker_map=None):
     """download (missing) data for the tickers in the universe using the Yahoo! Finance API"""
-    return download_data_generic(db_dir, download_ticker, recreate)
+    return download_data_generic(db_dir, download_ticker, recreate, ticker_map=ticker_map)
 
 
 def get_data(
         db_dir,
         features_generators=None,
         last_friday=dt.datetime.today() - relativedelta(weekday=FR(-1)),
-        target='target_20d'
+        target='target_20d',
+        ticker_map=None
 ):
     """generate data set with the Yahoo! Finance API!"""
     return get_data_generic(
         db_dir,
         features_generators=features_generators,
         last_friday=last_friday,
-        target=target)
+        target=target,
+        ticker_map=ticker_map)
