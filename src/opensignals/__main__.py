@@ -25,7 +25,6 @@ from docopt import docopt
 
 from opensignals import __version__
 from opensignals.data import yahoo
-from opensignals.features import RSI
 
 
 def main(argv: Optional[List[str]] = None) -> None:
