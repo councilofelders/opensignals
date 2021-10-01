@@ -80,10 +80,14 @@ class RSI:
                              for step in self.steps[:-1]}
         return feat_quintile_lag, feat_rsi_diff, feat_rsi_diff_abs
 
-    def generate_features(self, ticker_data):
+    def generate_features(self, ticker_data, feature_prefix=None):
         # add Relative Strength Index
         logger.info(f'generating RSI {self.interval} for {self.variable}...')
+
         feature_prefix_name = f'RSI_{self.interval}_{self.variable}'
+        if feature_prefix:
+            feature_prefix_name = f'{feature_prefix}_RSI_{self.interval}_{self.variable}'
+
         ticker_groups = ticker_data.groupby('bloomberg_ticker')
         ticker_data[feature_prefix_name] = \
             ticker_groups[self.variable].transform(
@@ -161,10 +165,14 @@ class SMA:
                              for step in self.steps[:-1]}
         return feat_quintile_lag, feat_rsi_diff, feat_rsi_diff_abs
 
-    def generate_features(self, ticker_data):
+    def generate_features(self, ticker_data, feature_prefix=None):
         # add Relative Strength Index
         logger.info(f'generating SMA {self.interval} for {self.variable}...')
+
         feature_prefix_name = f'SMA_{self.interval}_{self.variable}'
+        if feature_prefix:
+            feature_prefix_name = f'{feature_prefix}_SMA_{self.interval}_{self.variable}'
+
         ticker_groups = ticker_data.groupby('bloomberg_ticker')
         ticker_data[feature_prefix_name] = \
             ticker_groups[self.variable].transform(

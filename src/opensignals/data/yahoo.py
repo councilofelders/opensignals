@@ -99,7 +99,8 @@ def get_data(
         db_dir,
         features_generators=None,
         last_friday=datetime.today() - relativedelta(weekday=FR(-1)),
-        target='target_20d'):
+        target='target_20d',
+        feature_prefix=None):
     """generate data set"""
 
     if features_generators is None:
@@ -120,7 +121,7 @@ def get_data(
 
     feature_names = []
     for features_generator in features_generators:
-        ticker_data, feature_names_aux = features_generator.generate_features(ticker_data)
+        ticker_data, feature_names_aux = features_generator.generate_features(ticker_data, feature_prefix)
         feature_names.extend(feature_names_aux)
 
     # merge our feature data with Numerai targets
