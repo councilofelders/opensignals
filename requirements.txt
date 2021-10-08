@@ -1,6 +1,6 @@
-docopt
+docopt==0.6.2
 pandas==1.2.2
 numpy==1.20.1
 pyarrow==3.0.0
-requests
-tqdm
+requests==2.25.1
+tqdm==4.61.2
