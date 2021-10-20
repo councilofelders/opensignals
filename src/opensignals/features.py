@@ -106,6 +106,7 @@ class RSI:
             lambda group: pd.qcut(group, 5, labels=False, duplicates='drop')
         )
         ticker_data.dropna(inplace=True)
+        ticker_data[col] = ticker_data[col].astype('int8')
 
         (
             feat_quintile_lag, feat_rsi_diff, feat_rsi_diff_abs
@@ -121,7 +122,7 @@ class RSI:
             col = f'{feature_prefix_name}_quintile'
             ticker_data[feat_quintile_lag[day]] = ticker_groups[col].transform(
                 lambda group: group.shift(day)
-            )
+            ).astype('float16')
 
         # create difference of the lagged features and
         # absolute difference of the lagged features (change in RSI
@@ -191,6 +192,7 @@ class SMA:
             lambda group: pd.qcut(group, 5, labels=False, duplicates='drop')
         )
         ticker_data.dropna(inplace=True)
+        ticker_data[col] = ticker_data[col].astype('int8')
 
         (
             feat_quintile_lag, feat_sma_diff, feat_sma_diff_abs
@@ -206,7 +208,7 @@ class SMA:
             col = f'{feature_prefix_name}_quintile'
             ticker_data[feat_quintile_lag[day]] = ticker_groups[col].transform(
                 lambda group: group.shift(day)
-            )
+            ).astype('float16')
 
         # create difference of the lagged features and
         # absolute difference of the lagged features (change in
