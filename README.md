@@ -11,11 +11,11 @@ pip install -U opensignals
 ```python
 from pathlib import Path
 
-from opensignals.data import yahoo
+from opensignals.data import Yahoo
 from opensignals.features import RSI, SMA
 
 db_dir = Path('db')
-
+yahoo =  Yahoo()
 yahoo.download_data(db_dir)
 
 features_generators = [

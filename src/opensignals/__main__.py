@@ -24,8 +24,7 @@ from typing import List, Optional
 from docopt import docopt
 
 from opensignals import __version__
-from opensignals.data import yahoo
-from opensignals.features import RSI
+from opensignals.data import Yahoo
 
 
 def main(argv: Optional[List[str]] = None) -> None:
@@ -48,7 +47,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         logging.basicConfig(level=logging.INFO)
 
     if args['download']:
-        yahoo.download_data(Path(args['--dir']), args['--recreate'])
+        Yahoo().download_data(Path(args['--dir']), args['--recreate'])
 
 
 if __name__ == '__main__':
