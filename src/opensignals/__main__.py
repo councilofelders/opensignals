@@ -47,7 +47,8 @@ def main(argv: Optional[List[str]] = None) -> None:
         logging.basicConfig(level=logging.INFO)
 
     if args['download']:
-        Yahoo().download_data(Path(args['--dir']), args['--recreate'])
+        yahoo = Yahoo()
+        yahoo.download_data(Path(args['--dir']), args['--recreate'])
 
 
 if __name__ == '__main__':

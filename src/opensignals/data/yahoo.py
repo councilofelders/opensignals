@@ -22,10 +22,12 @@ SIGNALS_TARGETS = f'{AWS_BASE_URL}/signals_train_val_bbg.csv'
 
 
 class Provider:
+    """Common base class for (daily) stock price data"""
     def __init__(self):
         pass
 
-    def get_tickers(self):
+    @staticmethod
+    def get_tickers():
         ticker_map = pd.read_csv(SIGNALS_TICKER_MAP)
         ticker_map = ticker_map.dropna(subset=['yahoo'])
         logger.info(f'Number of eligible tickers: {ticker_map.shape[0]}')
@@ -46,7 +48,8 @@ class Provider:
 
         return ticker_map
 
-    def get_ticker_data(self, db_dir):
+    @staticmethod
+    def get_ticker_data(db_dir):
         ticker_data = pd.DataFrame({
             'bloomberg_ticker': pd.Series([], dtype='str'),
             'date': pd.Series([], dtype='datetime64[ns]')
@@ -59,8 +62,8 @@ class Provider:
 
         return ticker_data
 
-    def get_ticker_missing(self,
-                           ticker_data,
+    @staticmethod
+    def get_ticker_missing(ticker_data,
                            ticker_map,
                            last_friday=datetime.today() - relativedelta(weekday=FR(-1))):
         tickers_available_data = ticker_data.groupby('bloomberg_ticker').agg({'date': [max, min]})
@@ -96,6 +99,53 @@ class Provider:
             [ticker_not_found, tickers_outdated]
         )
 
+    @staticmethod
+    def get_live_data(ticker_data,  last_friday):
+        date_string = last_friday.strftime('%Y-%m-%d')
+        live_data = ticker_data[ticker_data.date == date_string].copy()
+
+        # get data from the day before, for markets that were closed
+        last_thursday = last_friday - relativedelta(days=1)
+        thursday_date_string = last_thursday.strftime('%Y-%m-%d')
+        thursday_data = ticker_data[ticker_data.date == thursday_date_string]
+
+        # Only select tickers than aren't already present in live_data
+        thursday_data = thursday_data[
+            ~thursday_data.bloomberg_ticker.isin(live_data.bloomberg_ticker.values)
+        ].copy()
+
+        live_data = pd.concat([live_data, thursday_data])
+        live_data = live_data.set_index('date')
+        return live_data
+
+    @staticmethod
+    def get_train_test_data(ticker_data, feature_names, targets):
+        """merge our feature data with Numerai targets"""
+        ml_data = pd.merge(
+            ticker_data, targets,
+            on=['date', 'bloomberg_ticker'],
+            how='left'
+        )
+
+        logger.info(f'Found {ml_data.target.isna().sum()}'
+                    'rows without target, filling with 0.5')
+        ml_data['target'] = ml_data['target'].fillna(0.5)
+
+        # convert date to datetime and index on it
+        ml_data = ml_data.set_index('date')
+
+        # for training and testing we want clean, complete data only
+        ml_data = ml_data.dropna(subset=feature_names)
+        # ensure we have only fridays
+        ml_data = ml_data[ml_data.index.weekday == 4]
+        # drop eras with under 50 observations per era
+        ml_data = ml_data[ml_data.index.value_counts() > 50]
+
+        # train test split
+        train_data = ml_data[ml_data['data_type'] == 'train']
+        test_data = ml_data[ml_data['data_type'] == 'validation']
+        return train_data, test_data
+
     def get_data(self,
                  db_dir,
                  features_generators=None,
@@ -125,47 +175,10 @@ class Provider:
             ticker_data, feature_names_aux = features_generator.generate_features(ticker_data, feature_prefix)
             feature_names.extend(feature_names_aux)
 
-        # merge our feature data with Numerai targets
-        ml_data = pd.merge(
-            ticker_data, targets,
-            on=['date', 'bloomberg_ticker'],
-            how='left'
-        )
-
-        logger.info(f'Found {ml_data.target.isna().sum()}'
-                    'rows without target, filling with 0.5')
-        ml_data['target'] = ml_data['target'].fillna(0.5)
-
-        # convert date to datetime and index on it
-        ml_data = ml_data.set_index('date')
-
-        # for training and testing we want clean, complete data only
-        ml_data = ml_data.dropna(subset=feature_names)
-        # ensure we have only fridays
-        ml_data = ml_data[ml_data.index.weekday == 4]
-        # drop eras with under 50 observations per era
-        ml_data = ml_data[ml_data.index.value_counts() > 50]
-
-        # train test split
-        train_data = ml_data[ml_data['data_type'] == 'train']
-        test_data = ml_data[ml_data['data_type'] == 'validation']
+        train_data, test_data = Provider.get_train_test_data(ticker_data, feature_names, targets)
 
         # generate live data
-        date_string = last_friday.strftime('%Y-%m-%d')
-        live_data = ticker_data[ticker_data.date == date_string].copy()
-
-        # get data from the day before, for markets that were closed
-        last_thursday = last_friday - relativedelta(days=1)
-        thursday_date_string = last_thursday.strftime('%Y-%m-%d')
-        thursday_data = ticker_data[ticker_data.date == thursday_date_string]
-
-        # Only select tickers than aren't already present in live_data
-        thursday_data = thursday_data[
-            ~thursday_data.bloomberg_ticker.isin(live_data.bloomberg_ticker.values)
-        ].copy()
-
-        live_data = pd.concat([live_data, thursday_data])
-        live_data = live_data.set_index('date')
+        live_data = Provider.get_live_data(ticker_data, last_friday)
 
         return train_data, test_data, live_data, feature_names
 
@@ -203,8 +216,8 @@ class Provider:
         db_dir.mkdir(exist_ok=True)
 
         ticker_data = self.get_ticker_data(db_dir)
-        ticker_map = selfget_tickers()
-        ticker_missing = get_ticker_missing(ticker_data, ticker_map)
+        ticker_map = self.get_tickers()
+        ticker_missing = self.get_ticker_missing(ticker_data, ticker_map)
 
         n_ticker_missing = ticker_missing.shape[0]
         if n_ticker_missing <= 0:
@@ -251,6 +264,9 @@ class Provider:
 
 
 class Yahoo(Provider):
+    """Implementation of a stock data price provider that uses the Yahoo! Finance API"""
+    def __init__(self):
+        Provider.__init__(self)
 
     def download_ticker(self, ticker, start_epoch, end_epoch):
         """dowload data for a given ticker"""

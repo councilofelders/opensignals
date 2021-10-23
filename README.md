@@ -15,7 +15,7 @@ from opensignals.data import Yahoo
 from opensignals.features import RSI, SMA
 
 db_dir = Path('db')
-yahoo =  Yahoo()
+yahoo = Yahoo()
 yahoo.download_data(db_dir)
 
 features_generators = [
