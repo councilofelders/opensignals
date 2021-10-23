@@ -11,7 +11,7 @@ pip install -U opensignals
 ```python
 from pathlib import Path
 
-from opensignals.data import Yahoo
+from opensignals.data.yahoo import Yahoo
 from opensignals.features import RSI, SMA
 
 db_dir = Path('db')

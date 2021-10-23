@@ -24,7 +24,7 @@ from typing import List, Optional
 from docopt import docopt
 
 from opensignals import __version__
-from opensignals.data import Yahoo
+from opensignals.data.yahoo import Yahoo
 
 
 def main(argv: Optional[List[str]] = None) -> None:
