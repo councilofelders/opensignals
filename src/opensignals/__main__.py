@@ -1,4 +1,3 @@
-
 """opensignals
 
 Usage:
@@ -25,7 +24,6 @@ from docopt import docopt
 
 from opensignals import __version__
 from opensignals.data import yahoo
-from opensignals.features import RSI
 
 
 def main(argv: Optional[List[str]] = None) -> None:
@@ -40,16 +38,16 @@ def main(argv: Optional[List[str]] = None) -> None:
     """
     args = docopt(__doc__, version=__version__)
 
-    if args['--verbose'] and int(args['--verbose']) > 1:
+    if args["--verbose"] and int(args["--verbose"]) > 1:
         logging.basicConfig(level=logging.DEBUG)
-    elif args['--verbose'] and int(args['--verbose']) == 0:
+    elif args["--verbose"] and int(args["--verbose"]) == 0:
         logging.basicConfig(level=logging.WARNING)
     else:
         logging.basicConfig(level=logging.INFO)
 
-    if args['download']:
-        yahoo.download_data(Path(args['--dir']), args['--recreate'])
+    if args["download"]:
+        yahoo.download_data(Path(args["--dir"]), args["--recreate"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

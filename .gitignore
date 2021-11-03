@@ -140,4 +140,4 @@ cython_debug/
 db/
 .idea/
 *.csv
-
+.invoke-completion.sh

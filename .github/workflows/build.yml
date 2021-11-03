@@ -1,0 +1,43 @@
+name: build
+
+on:
+  push:
+    branches-ignore:
+      - "dependabot/**"
+  pull_request:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install poetry
+      uses: snok/install-poetry@v1.2
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+    - name: Setup
+      run: bash setup.sh
+    - name: Check format with black
+      run: poetry run invoke check-format-with-black
+    - name: Check sorted import module
+      run: poetry run invoke sort-imports-with-isort
+    - name: Lint with pylint
+      run: poetry run invoke lint-with-pylint
+    - name: Lint with flake8
+      run: poetry run invoke lint-with-flake8
+    - name: Type checking with mypy
+      run: poetry run invoke lint-with-mypy
+    - name: Build
+      run: poetry build
+    - name: Publish Dry Run
+      if: github.event_name == 'push'
+      run: poetry publish --username="${{ secrets.PYPI_USERNAME }}" --password="${{ secrets.PYPI_PASSWORD }}" --dry-run
+    
