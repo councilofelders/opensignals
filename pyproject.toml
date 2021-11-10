@@ -1,6 +1,25 @@
+[tool.poetry]
+name = "opensignals"
+version = "0.0.2"
+description = ""
+authors = ["Jordi Villar <jrdi.villar@gmail.com>"]
+
+[tool.poetry.urls]
+Issues = "https://github.com/councilofelders/opensignals/issues"
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.11"
+docopt = "^0.6.2"
+pandas = "^1.3.4"
+numpy = "^1.21.3"
+pyarrow = "^6.0.0"
+requests = "^2.26.0"
+tqdm = "^4.62.3"
+
+[tool.poetry.dev-dependencies]
+pylint = "^2.11.1"
+
 [build-system]
-requires = [
-    'setuptools>=42',
-    'wheel'
-]
-build-backend = 'setuptools.build_meta'
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
