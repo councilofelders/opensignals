@@ -11,10 +11,13 @@ class VarChange:
         self.num_days = num_days
         self.variable = variable
 
-    def generate_features(self, ticker_data):
+    def generate_features(self, ticker_data, feature_prefix: str = None):
         logger.info(f'generating var change {self.num_days} '
                     f'for {self.variable}...')
         feature_prefix_name = f'{self.variable}_x{self.num_days}'
+        if feature_prefix:
+            feature_prefix_name = f'{feature_prefix}_{feature_prefix_name}'
+
         ticker_groups = ticker_data.groupby('bloomberg_ticker')
         ticker_data[feature_prefix_name] = \
             ticker_groups[self.variable].transform(
@@ -86,7 +89,7 @@ class RSI:
 
         feature_prefix_name = f'RSI_{self.interval}_{self.variable}'
         if feature_prefix:
-            feature_prefix_name = f'{feature_prefix}_RSI_{self.interval}_{self.variable}'
+            feature_prefix_name = f'{feature_prefix}_{feature_prefix_name}'
 
         ticker_groups = ticker_data.groupby('bloomberg_ticker')
         ticker_data[feature_prefix_name] = \
@@ -172,7 +175,7 @@ class SMA:
 
         feature_prefix_name = f'SMA_{self.interval}_{self.variable}'
         if feature_prefix:
-            feature_prefix_name = f'{feature_prefix}_SMA_{self.interval}_{self.variable}'
+            feature_prefix_name = f'{feature_prefix}_{feature_prefix_name}'
 
         ticker_groups = ticker_data.groupby('bloomberg_ticker')
         ticker_data[feature_prefix_name] = \
