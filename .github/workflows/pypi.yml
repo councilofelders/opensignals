@@ -10,27 +10,23 @@ jobs:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
     runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@master
-    - name: Set up Python 3.7
-      uses: actions/setup-python@v2.2.2
+    - name: Check out repository
+      uses: actions/checkout@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
       with:
-        python-version: 3.7
-    - name: Install pypa/build
-      run: >-
-        python -m
-        pip install
-        build
-        --user
-    - name: Build a binary wheel and a source tarball
-      run: >-
-        python -m
-        build
-        --sdist
-        --wheel
-        --outdir dist/
-        .
+        python-version: 3.9
+    - name: Install poetry
+      uses: snok/install-poetry@v1.2
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+    - name: Setup
+      run: bash setup.sh
+    - name: Build
+      run: poetry build
     - name: Publish distribution 📦 to PyPI
       if: startsWith(github.ref, 'refs/tags')
-      uses: pypa/gh-action-pypi-publish@master
+      run: poetry publish
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
