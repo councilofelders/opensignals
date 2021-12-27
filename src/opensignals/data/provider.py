@@ -31,11 +31,11 @@ class Provider(ABC):
         logger.info(f'Number of eligible tickers: {ticker_map.shape[0]}')
 
         if ticker_map['yahoo'].duplicated().any():
-            num = ticker_map["yahoo"].duplicated().values().sum()
+            num = ticker_map["yahoo"].duplicated().values.sum()
             raise Exception(f'Found duplicated {num} yahoo tickers')
 
         if ticker_map['bloomberg_ticker'].duplicated().any():
-            num = ticker_map["bloomberg_ticker"].duplicated().values().sum()
+            num = ticker_map["bloomberg_ticker"].duplicated().values.sum()
             raise Exception(f'Found duplicated {num} bloomberg_ticker tickers')
 
         return ticker_map
@@ -89,7 +89,7 @@ class Provider(ABC):
         ).dt.strftime('%Y-%m-%d')
         tickers_outdated.drop(columns=['date_max'], inplace=True)
 
-        return pd.concat([ticker_not_found, tickers_outdated])
+        return pd.concat([ticker_not_found, tickers_outdated])  # type: ignore
 
     @staticmethod
     def get_live_data(ticker_data: pd.DataFrame, last_friday: dt.date) -> pd.DataFrame:
@@ -108,7 +108,7 @@ class Provider(ABC):
 
         live_data = pd.concat([live_data, thursday_data])
         live_data = live_data.set_index('date')
-        return live_data
+        return live_data  # type: ignore
 
     @staticmethod
     def get_train_test_data(ticker_data: pd.DataFrame,
@@ -141,10 +141,10 @@ class Provider(ABC):
 
     def get_data(self,
                  db_dir: pathlib.Path,
-                 features_generators: List[features.FeatureGenerator] = None,
-                 last_friday: dt.datetime = None,
+                 features_generators: Optional[List[features.FeatureGenerator]] = None,
+                 last_friday: Optional[dt.datetime] = None,
                  target: str = 'target_20d',
-                 feature_prefix: str = None) -> pd.DataFrame:
+                 feature_prefix: Optional[str] = None) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, List[str]]:
         """generate data set"""
         if last_friday is None:
             last_friday = dt.datetime.today() - relativedelta(weekday=FR(-1))
@@ -177,8 +177,8 @@ class Provider(ABC):
         return train_data, test_data, live_data, feature_names
 
     def download_tickers(self, tickers: pd.DataFrame, start: str) -> pd.DataFrame:
-        start = dt.datetime.strptime(start, '%Y-%m-%d')
-        end = dt.datetime.combine(dt.date.today(), dt.time())
+        start_date = dt.datetime.strptime(start, '%Y-%m-%d')
+        end_date = dt.datetime.combine(dt.date.today(), dt.time())
 
         pbar = tqdm(total=len(tickers), unit='tickers')
 
@@ -187,7 +187,7 @@ class Provider(ABC):
             _futures = []
             for ticker in tickers:
                 _futures.append(
-                    executor.submit(self.download_ticker, ticker=ticker, start=start, end=end)
+                    executor.submit(self.download_ticker, ticker=ticker, start=start_date, end=end_date)
                 )
 
             for future in futures.as_completed(_futures):
@@ -199,7 +199,7 @@ class Provider(ABC):
 
         return pd.concat(dfs)
 
-    def download_data(self, db_dir: pathlib.Path, recreate: bool = False) -> pd.DataFrame:
+    def download_data(self, db_dir: pathlib.Path, recreate: bool = False) -> None:
         if recreate:
             logging.warning(f'Removing dataset {db_dir} to recreate it')
             shutil.rmtree(db_dir, ignore_errors=True)
@@ -249,6 +249,7 @@ class Provider(ABC):
 
         logger.info(f'Storing data for {n_ticker_data} tickers')
         df.to_parquet(db_dir / f'{dt.datetime.utcnow().timestamp()}.parquet', index=False)
+        return
 
     @abstractmethod
     def download_ticker(self, ticker: str, start: dt.datetime, end: dt.datetime) -> Tuple[str, pd.DataFrame]:

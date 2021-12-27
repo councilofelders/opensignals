@@ -2,7 +2,7 @@ import random
 
 import datetime as dt
 import time as _time
-from typing import Tuple
+from typing import Tuple, Dict, Union
 
 import numpy as np
 import pandas as pd
@@ -14,10 +14,10 @@ from opensignals import utils
 class Yahoo(Provider):
     """Implementation of a stock data price provider that uses the Yahoo! Finance API"""
 
-    def download_ticker(self, ticker, start: dt.datetime, end: dt.datetime) -> Tuple[str, pd.DataFrame]:
+    def download_ticker(self, ticker: str, start: dt.datetime, end: dt.datetime) -> Tuple[str, pd.DataFrame]:
         """dowload data for a given ticker"""
 
-        def empty_df():
+        def empty_df() -> pd.DataFrame:
             return pd.DataFrame(columns=[
                 "date", "bloomberg_ticker",
                 "open", "high", "low", "close",
@@ -28,7 +28,7 @@ class Yahoo(Provider):
         backoff = 1
         url = f'https://query2.finance.yahoo.com/v8/finance/chart/{ticker}'
         user_agent = random.choice(utils.USER_AGENTS)
-        params = dict(
+        params: Dict[str, Union[int, str]] = dict(
             period1=int(start.timestamp()),
             period2=int(end.timestamp()),
             interval='1d',

@@ -1,8 +1,9 @@
 from pathlib import Path
 from setuptools import setup, find_packages
+from typing import Dict
 
 metadata_path = Path(__file__).parent / 'src' / 'opensignals' / '__about__.py'
-metadata = {}
+metadata: Dict[str, str] = {}
 with metadata_path.open() as file:
     raw_code = file.read()
 exec(raw_code, metadata)
@@ -32,6 +33,7 @@ setup(
     ],
     extras_require=dict(
         test=[
+            'pandas-stubs == 1.2.0.39',
             'pytest==5.1.2',
             'pytest-cov==2.7.1',
             'pytest-flake8==1.0.6',

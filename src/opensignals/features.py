@@ -1,5 +1,5 @@
 import logging
-from typing import List, Protocol, Dict, Tuple, Union
+from typing import List, Optional, Protocol, Dict, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class FeatureGenerator(Protocol):
-    def generate_features(self, ticker_data: pd.DataFrame, feature_prefix: str = None):
+    def generate_features(self, ticker_data: pd.DataFrame, feature_prefix: Optional[str] = None) -> Tuple[pd.DataFrame, List[str]]:
         pass
 
 
@@ -20,7 +20,7 @@ class VarChange(FeatureGenerator):
 
     def generate_features(self,
                           ticker_data: pd.DataFrame,
-                          feature_prefix: str = None) -> Tuple[pd.DataFrame, List[str]]:
+                          feature_prefix: Optional[str] = None) -> Tuple[pd.DataFrame, List[str]]:
         logger.info(f'generating var change {self.num_days} '
                     f'for {self.variable}...')
         feature_prefix_name = f'{self.variable}_x{self.num_days}'
@@ -80,7 +80,7 @@ class RSI(FeatureGenerator):
 
         # calculate relative strength and it's index
         rel_strength = avg_gain / avg_loss
-        rsi = 100.0 - (100.0 / (1.0 + rel_strength))
+        rsi: pd.Series = 100.0 - (100.0 / (1.0 + rel_strength))
         return rsi
 
     def get_feature_names(self, prefix_name: str) -> Tuple[Dict[int, str], Dict[int, str], Dict[int, str]]:
@@ -95,7 +95,7 @@ class RSI(FeatureGenerator):
 
     def generate_features(self,
                           ticker_data: pd.DataFrame,
-                          feature_prefix: str = None) -> Tuple[pd.DataFrame, List[str]]:
+                          feature_prefix: Optional[str] = None) -> Tuple[pd.DataFrame, List[str]]:
         # add Relative Strength Index
         logger.info(f'generating RSI {self.interval} for {self.variable}...')
 
@@ -170,7 +170,7 @@ class SMA(FeatureGenerator):
 
     @staticmethod
     def simple_moving_average(prices: pd.Series, interval: int) -> pd.Series:
-        return prices.rolling(interval).mean()
+        return prices.rolling(interval).mean()   # type: ignore
 
     def get_feature_names(self, prefix_name: str) -> Tuple[Dict[int, str], Dict[int, str], Dict[int, str]]:
         # define column names of features, target, and prediction
@@ -184,7 +184,7 @@ class SMA(FeatureGenerator):
 
     def generate_features(self,
                           ticker_data: pd.DataFrame,
-                          feature_prefix: str = None) -> Tuple[pd.DataFrame, List[str]]:
+                          feature_prefix: Optional[str] = None) -> Tuple[pd.DataFrame, List[str]]:
         # add Relative Strength Index
         logger.info(f'generating SMA {self.interval} for {self.variable}...')
 
