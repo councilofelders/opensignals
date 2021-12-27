@@ -1,4 +1,5 @@
 import logging
+from typing import List, Optional, Protocol, Dict, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -6,12 +7,20 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-class VarChange:
-    def __init__(self, num_days=1, variable='adj_close'):
+class FeatureGenerator(Protocol):
+    def generate_features(self, ticker_data: pd.DataFrame, feature_prefix: Optional[str] = None) -> Tuple[pd.DataFrame, List[str]]:
+        pass
+
+
+class VarChange(FeatureGenerator):
+    def __init__(self, num_days: int = 1, variable: str = 'adj_close'):
+        super().__init__()
         self.num_days = num_days
         self.variable = variable
 
-    def generate_features(self, ticker_data, feature_prefix: str = None):
+    def generate_features(self,
+                          ticker_data: pd.DataFrame,
+                          feature_prefix: Optional[str] = None) -> Tuple[pd.DataFrame, List[str]]:
         logger.info(f'generating var change {self.num_days} '
                     f'for {self.variable}...')
         feature_prefix_name = f'{self.variable}_x{self.num_days}'
@@ -28,7 +37,7 @@ class VarChange:
         return ticker_data, []
 
 
-def _parse_num_days(num_days):
+def _parse_num_days(num_days: Union[int, List[int]]) -> List[int]:
     if isinstance(num_days, int):
         # +1 to be backwards compatible
         steps = list(range(num_days + 1))
@@ -41,16 +50,17 @@ def _parse_num_days(num_days):
     return steps
 
 
-class RSI:
+class RSI(FeatureGenerator):
     """Relative Strength Index"""
 
-    def __init__(self, num_days=5, interval=10, variable='adj_close'):
+    def __init__(self, num_days: int = 5, interval: int = 10, variable: str = 'adj_close'):
+        super().__init__()
         self.steps = _parse_num_days(num_days)
         self.interval = interval
         self.variable = variable
 
     @staticmethod
-    def relative_strength_index(prices, interval):
+    def relative_strength_index(prices: pd.Series, interval: int) -> pd.Series:
         '''
         Computes Relative Strength Index given a price series and lookback
         interval
@@ -70,10 +80,10 @@ class RSI:
 
         # calculate relative strength and it's index
         rel_strength = avg_gain / avg_loss
-        rsi = 100.0 - (100.0 / (1.0 + rel_strength))
+        rsi: pd.Series = 100.0 - (100.0 / (1.0 + rel_strength))
         return rsi
 
-    def get_feature_names(self, prefix_name):
+    def get_feature_names(self, prefix_name: str) -> Tuple[Dict[int, str], Dict[int, str], Dict[int, str]]:
         # define column names of features, target, and prediction
         feat_quintile_lag = {step: f'{prefix_name}_quintile_lag_{step}'
                              for step in self.steps}
@@ -83,7 +93,9 @@ class RSI:
                              for step in self.steps[:-1]}
         return feat_quintile_lag, feat_rsi_diff, feat_rsi_diff_abs
 
-    def generate_features(self, ticker_data, feature_prefix=None):
+    def generate_features(self,
+                          ticker_data: pd.DataFrame,
+                          feature_prefix: Optional[str] = None) -> Tuple[pd.DataFrame, List[str]]:
         # add Relative Strength Index
         logger.info(f'generating RSI {self.interval} for {self.variable}...')
 
@@ -147,19 +159,20 @@ class RSI:
         return ticker_data, feature_names
 
 
-class SMA:
+class SMA(FeatureGenerator):
     """Simple Moving Average"""
 
-    def __init__(self, num_days=5, interval=10, variable='adj_close'):
+    def __init__(self, num_days: int = 5, interval: int = 10, variable: str = 'adj_close'):
+        super().__init__()
         self.steps = _parse_num_days(num_days)
         self.interval = interval
         self.variable = variable
 
     @staticmethod
-    def simple_moving_average(prices, interval):
-        return prices.rolling(interval).mean()
+    def simple_moving_average(prices: pd.Series, interval: int) -> pd.Series:
+        return prices.rolling(interval).mean()   # type: ignore
 
-    def get_feature_names(self, prefix_name):
+    def get_feature_names(self, prefix_name: str) -> Tuple[Dict[int, str], Dict[int, str], Dict[int, str]]:
         # define column names of features, target, and prediction
         feat_quintile_lag = {step: f'{prefix_name}_quintile_lag_{step}'
                              for step in self.steps}
@@ -169,7 +182,9 @@ class SMA:
                              for step in self.steps[:-1]}
         return feat_quintile_lag, feat_rsi_diff, feat_rsi_diff_abs
 
-    def generate_features(self, ticker_data, feature_prefix=None):
+    def generate_features(self,
+                          ticker_data: pd.DataFrame,
+                          feature_prefix: Optional[str] = None) -> Tuple[pd.DataFrame, List[str]]:
         # add Relative Strength Index
         logger.info(f'generating SMA {self.interval} for {self.variable}...')
 
