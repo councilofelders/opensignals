@@ -243,3 +243,43 @@ class SMA(FeatureGenerator):
                          list(feat_sma_diff.values()) +
                          list(feat_sma_diff_abs.values()))
         return ticker_data, feature_names
+
+
+class DividendsAPY(FeatureGenerator):
+
+    def __init__(self,
+                 price_variable: str = 'close',
+                 div_variable: str = 'div_amount',
+                 freq_variable: str = 'frequency'):
+        super().__init__()
+        self.price_variable = price_variable
+        self.div_variable = div_variable
+        self.freq_variable = freq_variable
+
+    def generate_features(self,
+                          ticker_data: pd.DataFrame,
+                          feature_prefix: Optional[str] = None) -> Tuple[pd.DataFrame, List[str]]:
+        # NOTE: Stocks that used to payout dividends but do not anymore are not filtered out
+        # how often per year are dividends payed out?
+        ticker_data['frequency_int'] = ticker_data[self.freq_variable].str.strip().map({
+            'annual': 1,
+            'semi-annual': 2,
+            'quarterly': 4,
+            'monthly': 12,
+            'weekly': 52,
+            'daily': 365,
+        })
+
+        # calculate the dividend apy of the stock
+        feature_name = 'div_apy'
+        feature_names = [feature_name]
+        ticker_data[feature_name] = ticker_data[self.div_variable] * ticker_data['frequency_int'] / ticker_data[self.price_variable]
+
+        # Now we divide the calculated APY across daily quintiles. For any given day, we thus end up
+        # with a ranking of all the stocks' dividend APY:
+        ticker_data[feature_name] = (ticker_data
+                                     .groupby(ticker_data['date'])[feature_name]
+                                     .transform(lambda date: pd.qcut(date, 5, labels=False, duplicates='drop')) / 4
+                                     )
+
+        return ticker_data, feature_names
