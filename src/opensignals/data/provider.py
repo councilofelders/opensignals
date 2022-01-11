@@ -236,7 +236,6 @@ class Provider(ABC):
                 continue
 
             temp_df['created_at'] = dt.datetime.now()
-            # temp_df['volume'] = temp_df['volume'].astype('float64')
             temp_df['bloomberg_ticker'] = temp_df['bloomberg_ticker'].map(
                 dict(zip(ticker_map['yahoo'], ticker_map['bloomberg_ticker'])))
 
