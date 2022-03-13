@@ -199,7 +199,7 @@ class Provider(ABC):
 
         return pd.concat(dfs)
 
-    def download_data(self, db_dir: pathlib.Path, recreate: bool = False) -> None:
+    def download_data(self, db_dir: pathlib.Path, recreate: bool = False, region=None) -> None:
         if recreate:
             logging.warning(f'Removing dataset {db_dir} to recreate it')
             shutil.rmtree(db_dir, ignore_errors=True)
@@ -208,6 +208,11 @@ class Provider(ABC):
 
         ticker_data = self.get_ticker_data(db_dir)
         ticker_map = self.get_tickers()
+
+        ticker_map[['_', 'region']] = ticker_map['bloomberg_ticker'].str.split(' ', n=2, expand=True)
+        if region is not None:
+            ticker_map = ticker_map[ticker_map['region'] == region]
+
         ticker_missing = self.get_ticker_missing(ticker_data, ticker_map)
 
         n_ticker_missing = ticker_missing.shape[0]
@@ -232,7 +237,6 @@ class Provider(ABC):
                 continue
 
             temp_df['created_at'] = dt.datetime.now()
-            temp_df['volume'] = temp_df['volume'].astype('float64')
             temp_df['bloomberg_ticker'] = temp_df['bloomberg_ticker'].map(
                 dict(zip(ticker_map['yahoo'], ticker_map['bloomberg_ticker'])))
 
