@@ -153,10 +153,6 @@ class Provider(ABC):
 
         ticker_data = self.get_ticker_data(db_dir)
 
-        ticker_universe = pd.read_csv(SIGNALS_UNIVERSE)
-        ticker_data = ticker_data[ticker_data.bloomberg_ticker.isin(
-            ticker_universe['bloomberg_ticker'])]
-
         targets = pd.read_csv(SIGNALS_TARGETS)
         targets['date'] = pd.to_datetime(
             targets['friday_date'],
@@ -224,7 +220,7 @@ class Provider(ABC):
         for start, tickers in ticker_missing_grouped.iteritems():
             temp_df = self.download_tickers(tickers.split(' '), start=start)
             start_date = dt.datetime.strptime(start, '%Y-%m-%d')
-            
+
             # Yahoo Finance returning previous day in some situations
             # (e.g. Friday in TelAviv markets)
             temp_df = temp_df[temp_df.date >= start_date]
