@@ -1,6 +1,6 @@
 """Contain information about the project."""
 __package_name__ = 'opensignals'
-__version__ = '0.0.4'
+__version__ = '0.0.5-1'
 
 __description__ = 'Open Signals'
 
