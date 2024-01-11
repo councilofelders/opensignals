@@ -27,7 +27,7 @@ class VarChange(FeatureGenerator):
         if feature_prefix:
             feature_prefix_name = f'{feature_prefix}_{feature_prefix_name}'
 
-        ticker_groups = ticker_data.groupby('bloomberg_ticker')
+        ticker_groups = ticker_data.groupby('numerai_ticker')
         ticker_data[feature_prefix_name] = \
             ticker_groups[self.variable].transform(
                 lambda x: x.shift(self.num_days))
@@ -103,7 +103,7 @@ class RSI(FeatureGenerator):
         if feature_prefix:
             feature_prefix_name = f'{feature_prefix}_{feature_prefix_name}'
 
-        ticker_groups = ticker_data.groupby('bloomberg_ticker')
+        ticker_groups = ticker_data.groupby('numerai_ticker')
         ticker_data[feature_prefix_name] = \
             ticker_groups[self.variable].transform(
                 lambda x: self.relative_strength_index(x, self.interval)
@@ -129,7 +129,7 @@ class RSI(FeatureGenerator):
 
         # create lagged features grouped by ticker
         logger.debug('grouping by ticker...')
-        ticker_groups = ticker_data.groupby('bloomberg_ticker')
+        ticker_groups = ticker_data.groupby('numerai_ticker')
 
         # lag 0 is that day's value, lag 1 is yesterday's value, etc
         logger.debug('generating lagged RSI quintiles...')
@@ -192,7 +192,7 @@ class SMA(FeatureGenerator):
         if feature_prefix:
             feature_prefix_name = f'{feature_prefix}_{feature_prefix_name}'
 
-        ticker_groups = ticker_data.groupby('bloomberg_ticker')
+        ticker_groups = ticker_data.groupby('numerai_ticker')
         ticker_data[feature_prefix_name] = \
             ticker_groups[self.variable].transform(
                 lambda x: self.simple_moving_average(x, self.interval)
@@ -218,7 +218,7 @@ class SMA(FeatureGenerator):
 
         # create lagged features grouped by ticker
         logger.debug('grouping by ticker...')
-        ticker_groups = ticker_data.groupby('bloomberg_ticker')
+        ticker_groups = ticker_data.groupby('numerai_ticker')
 
         # lag 0 is that day's value, lag 1 is yesterday's value, etc
         logger.debug('generating lagged SMA quintiles...')

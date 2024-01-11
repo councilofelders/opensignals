@@ -19,7 +19,7 @@ class Yahoo(Provider):
 
         def empty_df() -> pd.DataFrame:
             return pd.DataFrame(columns=[
-                "date", "bloomberg_ticker",
+                "date", "numerai_ticker",
                 "open", "high", "low", "close",
                 "adj_close", "volume", "currency", "provider"])
 
@@ -61,7 +61,7 @@ class Yahoo(Provider):
 
                 df = pd.DataFrame({
                     "date": pd.to_datetime(timestamps, unit="s").normalize(),
-                    "bloomberg_ticker": ticker,
+                    "numerai_ticker": ticker,
                     "open": np.array(opens, dtype='float32'),
                     "high": np.array(highs, dtype='float32'),
                     "low": np.array(lows, dtype='float32'),

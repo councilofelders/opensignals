@@ -34,22 +34,22 @@ class Provider(ABC):
             num = ticker_map["yahoo"].duplicated().values.sum()
             raise Exception(f'Found duplicated {num} yahoo tickers')
 
-        if ticker_map['bloomberg_ticker'].duplicated().any():
-            num = ticker_map["bloomberg_ticker"].duplicated().values.sum()
-            raise Exception(f'Found duplicated {num} bloomberg_ticker tickers')
+        if ticker_map['numerai_ticker'].duplicated().any():
+            num = ticker_map["numerai_ticker"].duplicated().values.sum()
+            raise Exception(f'Found duplicated {num} numerai_ticker tickers')
 
         return ticker_map
 
     @staticmethod
     def get_ticker_data(db_dir: pathlib.Path) -> pd.DataFrame:
         ticker_data = pd.DataFrame({
-            'bloomberg_ticker': pd.Series([], dtype='str'),
+            'numerai_ticker': pd.Series([], dtype='str'),
             'date': pd.Series([], dtype='datetime64[ns]')
         })
         if len(list(db_dir.rglob('*.parquet'))) > 0:
             ticker_data = pd.read_parquet(db_dir)
 
-        num = ticker_data.bloomberg_ticker.unique().shape[0]
+        num = ticker_data.numerai_ticker.unique().shape[0]
         logger.info(f'Retrieving data for {num} tickers from the database')
 
         return ticker_data
@@ -60,17 +60,17 @@ class Provider(ABC):
                            last_friday: Optional[dt.datetime] = None) -> pd.DataFrame:
         if last_friday is None:
             last_friday = dt.datetime.today() - relativedelta(weekday=FR(-1))
-        tickers_available_data = ticker_data.groupby('bloomberg_ticker').agg({'date': [max, min]})
+        tickers_available_data = ticker_data.groupby('numerai_ticker').agg({'date': [max, min]})
         tickers_available_data.columns = ['date_max', 'date_min']
 
         eligible_tickers_available_data = ticker_map.merge(
             tickers_available_data.reset_index(),
-            on='bloomberg_ticker',
+            on='numerai_ticker',
             how='left'
         )
 
         ticker_not_found = eligible_tickers_available_data.loc[
-            eligible_tickers_available_data.date_max.isna(), ['bloomberg_ticker', 'yahoo']
+            eligible_tickers_available_data.date_max.isna(), ['numerai_ticker', 'yahoo']
         ]
 
         ticker_not_found['start'] = '2002-12-01'
@@ -81,7 +81,7 @@ class Provider(ABC):
                     (eligible_tickers_available_data.date_max < last_friday.strftime('%Y-%m-%d')) &
                     (eligible_tickers_available_data.date_max > last_friday_52.strftime('%Y-%m-%d'))
             ),
-            ['bloomberg_ticker', 'yahoo', 'date_max']
+            ['numerai_ticker', 'yahoo', 'date_max']
         ]
 
         tickers_outdated['start'] = (
@@ -103,7 +103,7 @@ class Provider(ABC):
 
         # Only select tickers than aren't already present in live_data
         thursday_data = thursday_data[
-            ~thursday_data.bloomberg_ticker.isin(live_data.bloomberg_ticker.values)
+            ~thursday_data.numerai_ticker.isin(live_data.numerai_ticker.values)
         ].copy()
 
         live_data = pd.concat([live_data, thursday_data])
@@ -117,7 +117,7 @@ class Provider(ABC):
         """merge our feature data with Numerai targets"""
         ml_data = pd.merge(
             ticker_data, targets,
-            on=['date', 'bloomberg_ticker'],
+            on=['date', 'numerai_ticker'],
             how='left'
         )
 
@@ -229,8 +229,8 @@ class Provider(ABC):
 
             temp_df['created_at'] = dt.datetime.now()
             temp_df['volume'] = temp_df['volume'].astype('float64')
-            temp_df['bloomberg_ticker'] = temp_df['bloomberg_ticker'].map(
-                dict(zip(ticker_map['yahoo'], ticker_map['bloomberg_ticker'])))
+            temp_df['numerai_ticker'] = temp_df['numerai_ticker'].map(
+                dict(zip(ticker_map['yahoo'], ticker_map['numerai_ticker'])))
 
             concat_dfs.append(temp_df)
 
@@ -239,7 +239,7 @@ class Provider(ABC):
             return
 
         df = pd.concat(concat_dfs)
-        n_ticker_data = df.bloomberg_ticker.unique().shape[0]
+        n_ticker_data = df.numerai_ticker.unique().shape[0]
         if n_ticker_data <= 0:
             logger.info('Dataset up to date')
             return
