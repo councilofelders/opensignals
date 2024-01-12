@@ -1,4 +1,6 @@
+import datetime as dt
 import logging
+from abc import ABC, abstractmethod
 from typing import List, Optional, Protocol, Dict, Tuple, Union
 
 import numpy as np
@@ -7,7 +9,19 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-class FeatureGenerator(Protocol):
+class FeatureGenerator(ABC):
+
+    numerai_ticker_col = 'bloomberg_ticker'
+
+    def __init__(self):
+        # once round 665 opens on 2024-01-23, bloomberg_ticker will be renamed to numerai_ticker
+        target_time = dt.datetime(2024, 1, 23, 13, 0, 0, tzinfo=dt.timezone.utc)
+        if dt.datetime.now(dt.timezone.utc) >= target_time:
+            FeatureGenerator.numerai_ticker_col = 'numerai_ticker'
+        else:
+            FeatureGenerator.numerai_ticker_col = 'bloomberg_ticker'
+
+    @abstractmethod
     def generate_features(self, ticker_data: pd.DataFrame, feature_prefix: Optional[str] = None) -> Tuple[pd.DataFrame, List[str]]:
         pass
 
@@ -27,7 +41,7 @@ class VarChange(FeatureGenerator):
         if feature_prefix:
             feature_prefix_name = f'{feature_prefix}_{feature_prefix_name}'
 
-        ticker_groups = ticker_data.groupby('bloomberg_ticker')
+        ticker_groups = ticker_data.groupby(FeatureGenerator.numerai_ticker_col)
         ticker_data[feature_prefix_name] = \
             ticker_groups[self.variable].transform(
                 lambda x: x.shift(self.num_days))
@@ -103,7 +117,7 @@ class RSI(FeatureGenerator):
         if feature_prefix:
             feature_prefix_name = f'{feature_prefix}_{feature_prefix_name}'
 
-        ticker_groups = ticker_data.groupby('bloomberg_ticker')
+        ticker_groups = ticker_data.groupby(FeatureGenerator.numerai_ticker_col)
         ticker_data[feature_prefix_name] = \
             ticker_groups[self.variable].transform(
                 lambda x: self.relative_strength_index(x, self.interval)
@@ -129,7 +143,7 @@ class RSI(FeatureGenerator):
 
         # create lagged features grouped by ticker
         logger.debug('grouping by ticker...')
-        ticker_groups = ticker_data.groupby('bloomberg_ticker')
+        ticker_groups = ticker_data.groupby(FeatureGenerator.numerai_ticker_col)
 
         # lag 0 is that day's value, lag 1 is yesterday's value, etc
         logger.debug('generating lagged RSI quintiles...')
@@ -192,7 +206,7 @@ class SMA(FeatureGenerator):
         if feature_prefix:
             feature_prefix_name = f'{feature_prefix}_{feature_prefix_name}'
 
-        ticker_groups = ticker_data.groupby('bloomberg_ticker')
+        ticker_groups = ticker_data.groupby(FeatureGenerator.numerai_ticker_col)
         ticker_data[feature_prefix_name] = \
             ticker_groups[self.variable].transform(
                 lambda x: self.simple_moving_average(x, self.interval)
@@ -218,7 +232,7 @@ class SMA(FeatureGenerator):
 
         # create lagged features grouped by ticker
         logger.debug('grouping by ticker...')
-        ticker_groups = ticker_data.groupby('bloomberg_ticker')
+        ticker_groups = ticker_data.groupby(FeatureGenerator.numerai_ticker_col)
 
         # lag 0 is that day's value, lag 1 is yesterday's value, etc
         logger.debug('generating lagged SMA quintiles...')
