@@ -24,6 +24,16 @@ SIGNALS_TARGETS = f'{AWS_BASE_URL}/signals_train_val_bbg.csv'
 class Provider(ABC):
     """Common base class for (daily) stock price data"""
 
+    numerai_ticker_col = 'bloomberg_ticker'
+
+    def __init__(self):
+        # once round 665 opens on 2024-01-23, bloomberg_ticker will be renamed to numerai_ticker
+        target_time = dt.datetime(2024, 1, 23, 13, 0, 0, tzinfo=dt.timezone.utc)
+        if dt.datetime.now(dt.timezone.utc) >= target_time:
+            Provider.numerai_ticker_col = 'numerai_ticker'
+        else:
+            Provider.numerai_ticker_col = 'bloomberg_ticker'
+
     @staticmethod
     def get_tickers() -> pd.DataFrame:
         ticker_map = pd.read_csv(SIGNALS_TICKER_MAP)
@@ -34,8 +44,8 @@ class Provider(ABC):
             num = ticker_map["yahoo"].duplicated().values.sum()
             raise Exception(f'Found duplicated {num} yahoo tickers')
 
-        if ticker_map['numerai_ticker'].duplicated().any():
-            num = ticker_map["numerai_ticker"].duplicated().values.sum()
+        if ticker_map[Provider.numerai_ticker_col].duplicated().any():
+            num = ticker_map[Provider.numerai_ticker_col].duplicated().values.sum()
             raise Exception(f'Found duplicated {num} numerai_ticker tickers')
 
         return ticker_map
@@ -43,13 +53,13 @@ class Provider(ABC):
     @staticmethod
     def get_ticker_data(db_dir: pathlib.Path) -> pd.DataFrame:
         ticker_data = pd.DataFrame({
-            'numerai_ticker': pd.Series([], dtype='str'),
+            Provider.numerai_ticker_col: pd.Series([], dtype='str'),
             'date': pd.Series([], dtype='datetime64[ns]')
         })
         if len(list(db_dir.rglob('*.parquet'))) > 0:
             ticker_data = pd.read_parquet(db_dir)
 
-        num = ticker_data.numerai_ticker.unique().shape[0]
+        num = ticker_data[Provider.numerai_ticker_col].unique().shape[0]
         logger.info(f'Retrieving data for {num} tickers from the database')
 
         return ticker_data
@@ -60,17 +70,17 @@ class Provider(ABC):
                            last_friday: Optional[dt.datetime] = None) -> pd.DataFrame:
         if last_friday is None:
             last_friday = dt.datetime.today() - relativedelta(weekday=FR(-1))
-        tickers_available_data = ticker_data.groupby('numerai_ticker').agg({'date': [max, min]})
+        tickers_available_data = ticker_data.groupby(Provider.numerai_ticker_col).agg({'date': [max, min]})
         tickers_available_data.columns = ['date_max', 'date_min']
 
         eligible_tickers_available_data = ticker_map.merge(
             tickers_available_data.reset_index(),
-            on='numerai_ticker',
+            on=Provider.numerai_ticker_col,
             how='left'
         )
 
         ticker_not_found = eligible_tickers_available_data.loc[
-            eligible_tickers_available_data.date_max.isna(), ['numerai_ticker', 'yahoo']
+            eligible_tickers_available_data.date_max.isna(), [Provider.numerai_ticker_col, 'yahoo']
         ]
 
         ticker_not_found['start'] = '2002-12-01'
@@ -81,7 +91,7 @@ class Provider(ABC):
                     (eligible_tickers_available_data.date_max < last_friday.strftime('%Y-%m-%d')) &
                     (eligible_tickers_available_data.date_max > last_friday_52.strftime('%Y-%m-%d'))
             ),
-            ['numerai_ticker', 'yahoo', 'date_max']
+            [Provider.numerai_ticker_col, 'yahoo', 'date_max']
         ]
 
         tickers_outdated['start'] = (
@@ -103,7 +113,7 @@ class Provider(ABC):
 
         # Only select tickers than aren't already present in live_data
         thursday_data = thursday_data[
-            ~thursday_data.numerai_ticker.isin(live_data.numerai_ticker.values)
+            ~thursday_data[Provider.numerai_ticker_col].isin(live_data[Provider.numerai_ticker_col].values)
         ].copy()
 
         live_data = pd.concat([live_data, thursday_data])
@@ -117,7 +127,7 @@ class Provider(ABC):
         """merge our feature data with Numerai targets"""
         ml_data = pd.merge(
             ticker_data, targets,
-            on=['date', 'numerai_ticker'],
+            on=['date', Provider.numerai_ticker_col],
             how='left'
         )
 
@@ -229,8 +239,8 @@ class Provider(ABC):
 
             temp_df['created_at'] = dt.datetime.now()
             temp_df['volume'] = temp_df['volume'].astype('float64')
-            temp_df['numerai_ticker'] = temp_df['numerai_ticker'].map(
-                dict(zip(ticker_map['yahoo'], ticker_map['numerai_ticker'])))
+            temp_df[Provider.numerai_ticker_col] = temp_df[Provider.numerai_ticker_col].map(
+                dict(zip(ticker_map['yahoo'], ticker_map[Provider.numerai_ticker_col])))
 
             concat_dfs.append(temp_df)
 
@@ -239,7 +249,7 @@ class Provider(ABC):
             return
 
         df = pd.concat(concat_dfs)
-        n_ticker_data = df.numerai_ticker.unique().shape[0]
+        n_ticker_data = df[Provider.numerai_ticker_col].unique().shape[0]
         if n_ticker_data <= 0:
             logger.info('Dataset up to date')
             return
